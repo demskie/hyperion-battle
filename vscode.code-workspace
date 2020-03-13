@@ -24,7 +24,7 @@
     "files.eol": "\n",
     "jest.runAllTestsFirst": true,
     "jest.debugMode": true,
-    "jest.pathToConfig": "package.json",
+    // "jest.pathToConfig": "package.json",
     "coverage-gutters.showGutterCoverage": false,
     "coverage-gutters.showLineCoverage": true,
     "coverage-gutters.showRulerCoverage": false,

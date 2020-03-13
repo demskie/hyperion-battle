@@ -1,0 +1,100 @@
+////////////////////////////////////////////////////////////
+//// randomly spawning entities with no prior knowledge ////
+////////////////////////////////////////////////////////////
+
+1) do a partial radix sort on fighter indices based on 1 bit emptyness factor to bring null values to the front of the texture
+
+2) blindly insert/overwrite/spawn fighters into those empty spots. It will be the CPU's responsibility to ensure we stay below the max value
+
+3) do a full radix sort of fighter indices for vertical and horizontal position data
+
+////////////////////////////////////
+//// quad texture zone approach ////
+////////////////////////////////////
+
+- maximum of four "zones" of entities
+
+- enough camera panning == reassign, reinitialize and adjust spatial index and entity positional data
+
+- each quadrant texture in a spatial index odd-even-sort will need a special custom shader to look at it's nearby neighbor textures to look for possible swaps.
+
+- anytime a texture-to-texture swap occurs the positional data will need to have the modulus operator applied to the appropriate (x,y) value. To detect for this after the fact we'll have to look at the spatial index backbuffer assuming that shader executes first.
+
+- texture-to-texture swaps will be constrained by the "invisible wall" created when the neighboring texture has it's corresponding texel filled for an extended period of time. Is this visual artifact common enough to cause concern and visually detect?
+
+/////////////////////////////////////////////
+//// problems with the quadrant approach ////
+/////////////////////////////////////////////
+
+- what if a fleet of fighters is crossing the boundary and midway through - the camera pans and that quadrant is destroyed. Those fighters effectively no longer exist and will never make it across the boundary. Do we detect for this and slowly spawn them in? One "solution" could be to go from 2x2 "quadrants" to 3x3 "sectors" and have gameplay mechanics that ensure that a fleet of ships can only span across direct neighboring sectors/quadrants
+
+- does it make more sense to do away with multiple spatial index textures and simply scatter/offset the data in a single megatexture when the camera pans enough to enter a new quadrant/sector? I'm having difficulty reasoning about this approach... will it work?
+
+- what about a megatexture approach with the restriction that screen space is broken into 4x4 sectors and the camera can only see 3x3 (or 2x2) at any given time resulting in plenty of overscan and potentially very few visual artifacts?
+
+/////////////////////////////////////////////////////////////
+//// reasoning about the megatexture + overscan approach ////
+/////////////////////////////////////////////////////////////
+
+- TODO
+
+//////////////////////////////////////////////////////
+//// reasoning about the purely overscan approach ////
+//////////////////////////////////////////////////////
+
+- what if we only ever have one spatialindex texture and have guarantees about the maximum size of a given fleet and only ever spawn/delete fleets offscreen due to the amount of overscan being utilized?
+
+- fleets could still be halfway deleted
+
+- spawning could potentially be simplified since we have guarantees on the new empty space being created by the screen panning
+
+//////////////////////////////////////////
+//// example run of overscan approach ////
+//////////////////////////////////////////
+
+1) camera pans enough to warrant an offset/deletion/creation routine
+2) all positions are offset by a predetermined amount
+3) all fighters that are about to be deleted but belong to a fleetCenterPosition that is still in range will be copied into a new reclaimed_fighters texture
+4) all texels in spatial_index texture are relocated
+5) texels in reclaimed_fighters texture are copied into the now empty space in spatial_index
+6) (if panning_diagonally) repeat steps 2 through 5 for other dimension
+7) (if spawning) radix sort based on emptyness of spatial_index
+8) (if spawning) blindly insert new fighters into spatial_index
+9) do complete multidimensional sort
+
+////////////////////////////////////
+//// radix sort draw call count ////
+////////////////////////////////////
+
+256 * 256 = 65536 total pixels
+16 = len([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768])
+18 = len([mask, ...Array(16), transpose])
+576 = 18 * 32bit
+draw calls = 576
+
+512 * 512 = 262144 total pixels
+18 = len([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072])
+20 = len([mask, ...Array(16), transpose])
+576 = 20 * 32bit
+draw calls = 640
+
+///////////////////////////////////////
+//// odd-even sort draw call count ////
+///////////////////////////////////////
+
+256 * 256 = 65536 total pixels
+512 = (256 + 256)
+draw calls = 512
+
+512 * 512 = 262144 total pixels
+1024 = (512 + 512)
+draw calls = 1024
+
+//////////////////
+//// spawning ////
+//////////////////
+
+1) ??? zeroize fighter data
+2) do a 1 bit radix sort on fighter status
+3) use last count from prefix sum to insert fighter positions into empty fighter position texels
+4) recreate spatial index with empty texels == (65535, 65535)
