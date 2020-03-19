@@ -38,6 +38,7 @@ void main() {
     neighborCoord = subtractTexcoord(neighborCoord, u_neighborX);
     neighborCoord.y -= u_neighborY;
     vec4 neighborTexel = texture2D(u_tex, vec2(neighborCoord.x, neighborCoord.y) / u_width);
+    neighborTexel.r = clearMSB(neighborTexel.r);
     vec2 neighborValue = vec2(vec2ToUint16(neighborTexel.rg), vec2ToUint16(neighborTexel.ba));
 
     // zeroize neighborValue if either x or y is out of bounds
@@ -45,7 +46,7 @@ void main() {
                      floatGreaterThanOrEqual(floor(neighborCoord.y), 0.0);
 
     // add values together
-    currentValue.y += neighborValue.y + floor(currentValue.x + neighborValue.x / u_width);
+    currentValue.y += neighborValue.y + floor((currentValue.x + neighborValue.x) / u_width);
     currentValue.x = mod(currentValue.x + neighborValue.x, u_width);
 
     // inject captured bit value into red channel

@@ -94,7 +94,7 @@ draw calls = 1024
 //// spawning ////
 //////////////////
 
-1) ??? zeroize fighter data
-2) do a 1 bit radix sort on fighter status
-3) use last count from prefix sum to insert fighter positions into empty fighter position texels
-4) recreate spatial index with empty texels == (65535, 65535)
+1) radix sort fighter positions/flags/etc based on emptyness
+2) do a 1 bit radix sort on fighter flag status
+3) use saved lastCount from prefix sum to insert fighter data 
+4) recreate spatial index and do a full sort
