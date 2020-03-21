@@ -36,14 +36,30 @@ export function execute(
   singleTexelTargetAlpha: gpu.RenderTarget,
   fighterPositionsCPU: gpu.RenderTarget,
   fighterColorsCPU: gpu.RenderTarget,
-  fighterFlagsCPU: gpu.RenderTarget
+  fighterFlagsCPU: gpu.RenderTarget,
+  spawnCount: number
 ) {
-  // ensure that the provided texture widths are valid
+  // sanity check the provided texture widths and parameters
+  if (fighterPositions.width !== fighterSpatialIndex.width)
+    throw new Error("fighterPositions.width does not equal fighterSpatialIndex.width");
+  if (fighterFlags.width !== fighterSpatialIndex.width)
+    throw new Error("fighterPositions.width does not equal fighterSpatialIndex.width");
+  if (fullTargetAlpha.width !== fighterSpatialIndex.width)
+    throw new Error("fullTargetAlpha.width does not equal fighterSpatialIndex.width");
+  if (singleTexelTargetAlpha.width !== 1) throw new Error("singleTexelTargetAlpha.width does not equal one");
+  if (fighterPositionsCPU.width > fighterPositions.width)
+    throw new Error("fighterPositionsCPU.width is greater than fighterPositions.width");
+  if (fighterColorsCPU.width !== fighterColors.width)
+    throw new Error("fighterColorsCPU.width does not equal fighterColors.width");
+  if (fighterFlagsCPU.width !== fighterFlags.width)
+    throw new Error("fighterFlagsCPU.width does not equal fighterFlags.width");
+  if (spawnCount > fighterSpatialIndex.width * fighterSpatialIndex.width)
+    throw new Error("spawnCount is greater than fighterSpatialIndex.width * fighterSpatialIndex.width");
+  if (spawnCount < 1) throw new Error("spawnCount is less than one");
+
+  // define reference widths
   const width = fighterSpatialIndex.width;
-  if (fighterPositions.width !== width) throw new Error("fighterPositions.width !== fighterSpatialIndex.width");
-  if (fighterFlags.width !== width) throw new Error("fighterPositions.width !== fighterSpatialIndex.width");
-  if (fullTargetAlpha.width !== width) throw new Error("fullTargetAlpha.width !== fighterSpatialIndex.width");
-  if (singleTexelTargetAlpha.width !== 1) throw new Error("singleTexelTargetAlpha.width !== 1");
+  const cpuWidth = fighterPositionsCPU.width;
 
   // create a bit mask based on fighter "aliveness"
   fullTargetAlpha.compute(maskShader, { u_tex: fighterFlags, u_bitIndex: 0, u_width: width });
@@ -81,19 +97,27 @@ export function execute(
     u_fighterPositions: fighterPositions,
     u_fighterPositionsCPU: fighterPositionsCPU,
     u_singleTexelOffset: singleTexelTargetAlpha,
-    u_cpuInvalidStartX: 0,
-    u_cpuInvalidStartY: 0,
-    u_cpuWidth: width,
+    u_cpuInvalidStartX: spawnCount % cpuWidth,
+    u_cpuInvalidStartY: Math.floor(spawnCount / cpuWidth),
+    u_cpuWidth: cpuWidth,
     u_width: width
   });
   fighterColors.compute(insertGenericDataShader, {
-    u_tex: fighterColorsCPU,
-    u_offsetTex: singleTexelTargetAlpha,
+    u_genericData: fighterColors,
+    u_genericDataCPU: fighterColorsCPU,
+    u_singleTexelOffset: singleTexelTargetAlpha,
+    u_cpuInvalidStartX: spawnCount % cpuWidth,
+    u_cpuInvalidStartY: Math.floor(spawnCount / cpuWidth),
+    u_cpuWidth: cpuWidth,
     u_width: width
   });
   fighterFlags.compute(insertGenericDataShader, {
-    u_tex: fighterFlagsCPU,
-    u_offsetTex: singleTexelTargetAlpha,
+    u_genericData: fighterFlags,
+    u_genericDataCPU: fighterFlagsCPU,
+    u_singleTexelOffset: singleTexelTargetAlpha,
+    u_cpuInvalidStartX: spawnCount % cpuWidth,
+    u_cpuInvalidStartY: Math.floor(spawnCount / cpuWidth),
+    u_cpuWidth: cpuWidth,
     u_width: width
   });
 
@@ -117,34 +141,6 @@ export function execute(
     fighterSpatialIndex.transpose(fullTargetAlpha);
   };
 
-  // sort spatial index horizontally
-  for (let bitIndex = 15; bitIndex >= 0; bitIndex--)
-    radixSortSpatialIndexUsingMask(
-      fullTargetAlpha.compute(maskShader, {
-        u_tex: fighterPositions,
-        u_bitIndex: bitIndex,
-        u_width: width
-      })
-    );
-
-  // horizontally sort based on whether the fighter is "alive" and should be in the topLeft or BottomLeft corners
-  radixSortSpatialIndexUsingMask(
-    fullTargetAlpha.compute(maskLeftCornersShader, {
-      u_fighterPositions: fighterPositions,
-      u_fighterFlags: fighterFlags,
-      u_width: width
-    })
-  );
-
-  // horizontally sort based on whether the fighter is "alive" and should be in the topRight or bottomRight corners
-  radixSortSpatialIndexUsingMask(
-    fullTargetAlpha.compute(maskRightCornersShader, {
-      u_fighterPositions: fighterPositions,
-      u_fighterFlags: fighterFlags,
-      u_width: width
-    })
-  );
-
   // sort spatial index vertically
   for (let bitIndex = 31; bitIndex >= 16; bitIndex--)
     radixSortSpatialIndexUsingMask(
@@ -167,6 +163,34 @@ export function execute(
   // vertically sort based on whether the fighter is "alive" and should be in the bottomLeft or bottomRight corners
   radixSortSpatialIndexUsingMask(
     fullTargetAlpha.compute(maskBottomCornersShader, {
+      u_fighterPositions: fighterPositions,
+      u_fighterFlags: fighterFlags,
+      u_width: width
+    })
+  );
+
+  // sort spatial index horizontally
+  for (let bitIndex = 15; bitIndex >= 0; bitIndex--)
+    radixSortSpatialIndexUsingMask(
+      fullTargetAlpha.compute(maskShader, {
+        u_tex: fighterPositions,
+        u_bitIndex: bitIndex,
+        u_width: width
+      })
+    );
+
+  // horizontally sort based on whether the fighter is "alive" and should be in the topLeft or BottomLeft corners
+  radixSortSpatialIndexUsingMask(
+    fullTargetAlpha.compute(maskLeftCornersShader, {
+      u_fighterPositions: fighterPositions,
+      u_fighterFlags: fighterFlags,
+      u_width: width
+    })
+  );
+
+  // horizontally sort based on whether the fighter is "alive" and should be in the topRight or bottomRight corners
+  radixSortSpatialIndexUsingMask(
+    fullTargetAlpha.compute(maskRightCornersShader, {
       u_fighterPositions: fighterPositions,
       u_fighterFlags: fighterFlags,
       u_width: width
