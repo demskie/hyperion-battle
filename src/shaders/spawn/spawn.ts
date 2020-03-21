@@ -1,5 +1,5 @@
 import * as gpu from "gpu-compute";
-import { searchAndReplace } from "../../App";
+import { searchAndReplace } from "../../searchandreplace";
 
 // https://webpack.js.org/loaders/raw-loader/
 /* eslint import/no-webpack-loader-syntax: off */
@@ -81,6 +81,8 @@ export function execute(
     u_fighterPositions: fighterPositions,
     u_fighterPositionsCPU: fighterPositionsCPU,
     u_singleTexelOffset: singleTexelTargetAlpha,
+    u_cpuInvalidStartX: 0,
+    u_cpuInvalidStartY: 0,
     u_cpuWidth: width,
     u_width: width
   });

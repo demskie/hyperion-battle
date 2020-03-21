@@ -7,8 +7,10 @@ precision highp sampler2D;
 uniform sampler2D u_fighterPositions;
 uniform sampler2D u_fighterPositionsCPU;
 uniform sampler2D u_singleTexelOffset;
-uniform float u_width;
+uniform float u_cpuInvalidStartX;
+uniform float u_cpuInvalidStartY;
 uniform float u_cpuWidth;
+uniform float u_width;
 
 float round(float);
 float floatEquals(float, float);
@@ -25,45 +27,52 @@ bool getMSB(float);
 float clearMSB(float);
 float setMSB(float, bool);
 struct texcoord { float x, y, w; };
+texcoord addTexcoord(texcoord, float);
 texcoord subtractTexcoord(texcoord, float);
-
-texcoord subtractTexcoord(texcoord a, texcoord b) {
-
-    // (3,5) w=8 minus (1,2) w=4
-    a.x -= b.x; // (2,5)
-    a.y -= floatLessThan(a.x, 0.0); // (2,5)
-    a.y -= floatLessThan(a.x, 0.0) * floor(abs(a.x) / a.w); // (2,5)
-    a.y -= b.y * (b.w / a.w); // (2,4)
-    a.x = mod(a.x, a.w); // (2,4)
-
-    // (2,3) w=4 minus (3,1) w=8
-    a.x -= b.x; // (-1,3)
-    a.y -= floatLessThan(a.x, 0.0); // (-1, 2)
-    a.y -= floatLessThan(a.x, 0.0) * floor(abs(a.x) / a.w); // (-1, 2) // 1.0 * floor(abs(-1) / 8)
-    a.y -= b.y * (b.w / a.w); // (-1, 0)
-    a.x = mod(a.x, a.w); // (3, 0)
-
-    return a;
-}
-
-// BUG: fighter positions need to be clamped to a corner if they are empty positions
+texcoord resizeTexcoord(texcoord, float);
+void equalizeTexcoordWidths(inout texcoord, inout texcoord);
+texcoord addTexcoord(texcoord, texcoord);
+texcoord subtractTexcoord(texcoord, texcoord);
+float texcoordLessThan(texcoord, texcoord);
+float texcoordLessThanOrEqual(texcoord, texcoord);
+float texcoordGreaterThan(texcoord, texcoord);
+float texcoordGreaterThanOrEqual(texcoord, texcoord);
 
 void main() {
-    // get previous output texel
-    vec4 previousOutputTexel = texture2D(u_fighterPositions, gl_FragCoord.xy / u_width);
+    // create texcoord representing our position in output texture
+    texcoord currentTexcoord = texcoord(floor(gl_FragCoord.x), floor(gl_FragCoord.y), u_width);
+
+    // get current output texel
+    vec4 passthroughTexel = texture2D(u_fighterPositions, vec2(currentTexcoord.x + 0.5, currentTexcoord.y + 0.5) / currentTexcoord.w);
     
     // get offset coordinates
-    vec4 cpuOffsetTexel = texture2D(u_singleTexelOffset, vec2(0.5, 0.5));
-    cpuOffsetTexel.r = clearMSB(cpuOffsetTexel.r);
-    vec2 cpuOffsetCoord = vec2(vec2ToUint16(cpuOffsetTexel.rg), vec2ToUint16(cpuOffsetTexel.ba));
+    vec4 singleTexel = texture2D(u_singleTexelOffset, vec2(0.5, 0.5));
+    singleTexel.r = clearMSB(singleTexel.r);
+    texcoord startEmptyTexcoord = texcoord(vec2ToUint16(singleTexel.rg), vec2ToUint16(singleTexel.ba), u_cpuWidth);
 
     // determine offset coordinates for CPU data
-    texcoord cpuTexcoord = texcoord(floor(gl_FragCoord.x), floor(gl_FragCoord.y), u_width);
-    cpuTexcoord = subtractTexcoord(cpuTexcoord, cpuOffsetCoord.x);
-    cpuTexcoord.y -= cpuOffsetCoord.y ;
+    texcoord cpuTexcoord = subtractTexcoord(startEmptyTexcoord, currentTexcoord);
 
-    // get cpu offsetted cpu texel
-    vec4 cpuTexel = texture2D(u_fighterPositionsCPU, vec2(cpuTexcoord.x + 0.5, cpuTexcoord.y + 0.5) / u_width);
+    // pull cpuTexel regardless if we're going to use it
+    vec4 overwriteTexel = texture2D(u_fighterPositionsCPU, vec2(cpuTexcoord.x + 0.5, cpuTexcoord.y + 0.5) / cpuTexcoord.w);
 
+    // calculate the out of bounds coordinates
+    texcoord outOfBoundsTexcoord = addTexcoord(startEmptyTexcoord, texcoord(u_cpuInvalidStartX, u_cpuInvalidStartY, u_cpuWidth));
 
+    // create texel for an out of bounds value that is clamped in one of the four corners
+    vec4 outOfBoundsTexel = floatEquals(mod(currentTexcoord.x, 4.0), 0.0) * vec4(uint16ToVec2(0.0), uint16ToVec2(0.0))
+                          + floatEquals(mod(currentTexcoord.x, 4.0), 1.0) * vec4(uint16ToVec2(65535.0), uint16ToVec2(0.0))
+                          + floatEquals(mod(currentTexcoord.x, 4.0), 2.0) * vec4(uint16ToVec2(0.0), uint16ToVec2(65535.0))
+                          + floatEquals(mod(currentTexcoord.x, 4.0), 3.0) * vec4(uint16ToVec2(65535.0), uint16ToVec2(65535.0));
+
+    // create pseudoconditionals based on output texel coordinates
+    float passthroughBool = texcoordLessThan(currentTexcoord, startEmptyTexcoord);
+    float overwriteBool   = texcoordGreaterThanOrEqual(currentTexcoord, startEmptyTexcoord)
+                          * texcoordLessThan(currentTexcoord, outOfBoundsTexcoord);
+    float outOfBoundsBool = texcoordGreaterThanOrEqual(currentTexcoord, outOfBoundsTexcoord);
+
+    // output based on boolean
+    gl_FragColor = passthroughTexel * passthroughBool
+                 + overwriteTexel   * overwriteBool
+                 + outOfBoundsTexel * outOfBoundsBool;
 }
