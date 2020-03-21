@@ -1,5 +1,7 @@
 import * as gpu from "gpu-compute";
-import { searchAndReplace } from "../../searchandreplace";
+import * as common from "../../common";
+
+common.prepareWebGLContext();
 
 // https://webpack.js.org/loaders/raw-loader/
 /* eslint import/no-webpack-loader-syntax: off */
@@ -15,17 +17,17 @@ import maskRightCornersFrag from "!!raw-loader!./09_mask_right_corners.frag";
 import maskTopCornersFrag from "!!raw-loader!./10_mask_top_corners.frag";
 import maskBottomCornersFrag from "!!raw-loader!./11_mask_bottom_corners.frag";
 
-const maskShader = new gpu.ComputeShader(maskFrag, searchAndReplace, gpu.passThruVert);
-const scanShader = new gpu.ComputeShader(scanFrag, searchAndReplace, gpu.passThruVert);
-const grabTexelShader = new gpu.ComputeShader(grabTexelFrag, searchAndReplace, gpu.passThruVert);
-const scatterShader = new gpu.ComputeShader(scatterFrag, searchAndReplace, gpu.passThruVert);
-const insertPositionsShader = new gpu.ComputeShader(insertPositionsFrag, searchAndReplace, gpu.passThruVert);
-const insertGenericDataShader = new gpu.ComputeShader(insertGenericDataFrag, searchAndReplace, gpu.passThruVert);
-const reinitializeShader = new gpu.ComputeShader(reinitializeFrag, searchAndReplace, gpu.passThruVert);
-const maskLeftCornersShader = new gpu.ComputeShader(maskLeftCornersFrag, searchAndReplace, gpu.passThruVert);
-const maskRightCornersShader = new gpu.ComputeShader(maskRightCornersFrag, searchAndReplace, gpu.passThruVert);
-const maskTopCornersShader = new gpu.ComputeShader(maskTopCornersFrag, searchAndReplace, gpu.passThruVert);
-const maskBottomCornersShader = new gpu.ComputeShader(maskBottomCornersFrag, searchAndReplace, gpu.passThruVert);
+const maskShader = new gpu.ComputeShader(maskFrag, common.searchAndReplace);
+const scanShader = new gpu.ComputeShader(scanFrag, common.searchAndReplace);
+const grabTexelShader = new gpu.ComputeShader(grabTexelFrag, common.searchAndReplace);
+const scatterShader = new gpu.ComputeShader(scatterFrag, common.searchAndReplace);
+const insertPositionsShader = new gpu.ComputeShader(insertPositionsFrag, common.searchAndReplace);
+const insertGenericDataShader = new gpu.ComputeShader(insertGenericDataFrag, common.searchAndReplace);
+const reinitializeShader = new gpu.ComputeShader(reinitializeFrag, common.searchAndReplace);
+const maskLeftCornersShader = new gpu.ComputeShader(maskLeftCornersFrag, common.searchAndReplace);
+const maskRightCornersShader = new gpu.ComputeShader(maskRightCornersFrag, common.searchAndReplace);
+const maskTopCornersShader = new gpu.ComputeShader(maskTopCornersFrag, common.searchAndReplace);
+const maskBottomCornersShader = new gpu.ComputeShader(maskBottomCornersFrag, common.searchAndReplace);
 
 export function execute(
   fighterSpatialIndex: gpu.RenderTarget,
@@ -49,10 +51,10 @@ export function execute(
   if (singleTexelTargetAlpha.width !== 1) throw new Error("singleTexelTargetAlpha.width does not equal one");
   if (fighterPositionsCPU.width > fighterPositions.width)
     throw new Error("fighterPositionsCPU.width is greater than fighterPositions.width");
-  if (fighterColorsCPU.width !== fighterColors.width)
-    throw new Error("fighterColorsCPU.width does not equal fighterColors.width");
-  if (fighterFlagsCPU.width !== fighterFlags.width)
-    throw new Error("fighterFlagsCPU.width does not equal fighterFlags.width");
+  if (fighterColorsCPU.width !== fighterPositionsCPU.width)
+    throw new Error("fighterColorsCPU.width does not equal fighterPositionsCPU.width");
+  if (fighterFlagsCPU.width !== fighterPositionsCPU.width)
+    throw new Error("fighterFlagsCPU.width does not equal fighterPositionsCPU.width");
   if (spawnCount > fighterSpatialIndex.width * fighterSpatialIndex.width)
     throw new Error("spawnCount is greater than fighterSpatialIndex.width * fighterSpatialIndex.width");
   if (spawnCount < 1) throw new Error("spawnCount is less than one");

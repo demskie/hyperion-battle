@@ -1,7 +1,7 @@
 #ifdef GL_ES
-precision mediump float;
-precision mediump int;
-precision mediump sampler2D;
+precision highp float;
+precision highp int;
+precision highp sampler2D;
 #endif
 
 uniform sampler2D u_fighterPositions;

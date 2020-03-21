@@ -1,60 +1,22 @@
 import * as gpu from "gpu-compute";
+import { readFileSync } from "fs";
+import * as common from "../../common";
+import * as spawn from "./spawn";
 
-import { searchAndReplace } from "../../searchandreplace";
-
-beforeAll(() => {
-  gpu.setWebGLContext(require("gl")(1, 1));
-});
-
-const maskFrag = require("fs").readFileSync(
-  require("path").join(__dirname, "./", "01_mask.frag"),
-  "utf8",
-  (err: any, data: any) => data
-);
-
-const scanFrag = require("fs").readFileSync(
-  require("path").join(__dirname, "./", "02_scan.frag"),
-  "utf8",
-  (err: any, data: any) => data
-);
-
-const copyLastTexelFrag = require("fs").readFileSync(
-  require("path").join(__dirname, "./", "03_copy_last_texel.frag"),
-  "utf8",
-  (err: any, data: any) => data
-);
-
-const scatterFrag = require("fs").readFileSync(
-  require("path").join(__dirname, "./", "04_scatter.frag"),
-  "utf8",
-  (err: any, data: any) => data
-);
-
-test("mask", () => {
-  const maskShader = new gpu.ComputeShader(maskFrag, searchAndReplace, gpu.passThruVert);
-  const maskTarget = new gpu.RenderTarget(1);
-  const flagsTarget = new gpu.RenderTarget(1);
-
-  flagsTarget.pushTextureData(new Uint8Array([128, 0, 0, 0]));
-  maskTarget.compute(maskShader, { u_flags: flagsTarget });
-  expect(maskTarget.readPixels()).toEqual(new Uint8Array([128, 1, 0, 0]));
-
-  flagsTarget.pushTextureData(new Uint8Array([0, 0, 0, 0]));
-  maskTarget.compute(maskShader, { u_flags: flagsTarget });
-  expect(maskTarget.readPixels()).toEqual(new Uint8Array([0, 0, 0, 0]));
-
-  maskShader.delete();
-  maskTarget.delete();
-  flagsTarget.delete();
-});
+common.prepareWebGLContext();
 
 test("one bit radix sort", () => {
   const width = 2;
 
-  const maskShader = new gpu.ComputeShader(maskFrag, searchAndReplace, gpu.passThruVert);
-  const scanShader = new gpu.ComputeShader(scanFrag, searchAndReplace, gpu.passThruVert);
-  const copyLastTexelShader = new gpu.ComputeShader(copyLastTexelFrag, searchAndReplace, gpu.passThruVert);
-  const scatterShader = new gpu.ComputeShader(scatterFrag, searchAndReplace, gpu.passThruVert);
+  const maskFrag = readFileSync(require.resolve("./01_mask.frag"), "utf8");
+  const scanFrag = readFileSync(require.resolve("./02_scan.frag"), "utf8");
+  const grabTexelFrag = readFileSync(require.resolve("./03_grab_texel.frag"), "utf8");
+  const scatterFrag = readFileSync(require.resolve("./04_scatter.frag"), "utf8");
+
+  const maskShader = new gpu.ComputeShader(maskFrag, common.searchAndReplace);
+  const scanShader = new gpu.ComputeShader(scanFrag, common.searchAndReplace);
+  const grabTexelShader = new gpu.ComputeShader(grabTexelFrag, common.searchAndReplace);
+  const scatterShader = new gpu.ComputeShader(scatterFrag, common.searchAndReplace);
   const alphaTarget = new gpu.RenderTarget(width);
   const bravoTarget = new gpu.RenderTarget(width);
   const charlieTarget = new gpu.RenderTarget(1);
@@ -63,7 +25,7 @@ test("one bit radix sort", () => {
 
   bravoTarget.pushTextureData(new Uint8Array([128, 0, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0]));
 
-  bravoTarget.compute(maskShader, { u_flags: bravoTarget, u_width: width });
+  bravoTarget.compute(maskShader, { u_tex: bravoTarget, bitIndex: 0, u_width: width });
 
   for (let i = 1; i < width * width; i *= 2) {
     bravoTarget.compute(scanShader, {
@@ -74,7 +36,12 @@ test("one bit radix sort", () => {
     });
   }
 
-  charlieTarget.compute(copyLastTexelShader, { u_tex: bravoTarget, u_width: width });
+  charlieTarget.compute(grabTexelShader, {
+    u_tex: bravoTarget,
+    u_xCoord: width - 1,
+    u_yCoord: width - 1,
+    u_width: width
+  });
 
   bravoTarget.compute(scatterShader, { u_scanned: bravoTarget, u_width: width });
 
@@ -89,65 +56,28 @@ test("one bit radix sort", () => {
   bravoTarget.delete();
 });
 
-export const toInt16Pairs = (bytes: Uint8Array) => {
-  const output = [] as number[][];
-  for (let i = 0; i < bytes.length && i < 4 * 4; i += 4)
-    output.push([gpu.unpackInt16(bytes[i + 0], bytes[i + 1]), gpu.unpackInt16(bytes[i + 2], bytes[i + 3])]);
-  return JSON.stringify(output, undefined, "");
-};
-
-export const toUint16Pairs = (bytes: Uint8Array) => {
-  const output = [] as number[][];
-  for (let i = 0; i < bytes.length && i < 4 * 4; i += 4)
-    output.push([gpu.unpackUint16(bytes[i + 0], bytes[i + 1]), gpu.unpackUint16(bytes[i + 2], bytes[i + 3])]);
-  return JSON.stringify(output, undefined, "");
-};
-
-export const toUint32 = (bytes: Uint8Array) => {
-  return new Uint32Array(bytes.buffer);
-  const output = [] as number[][];
-  for (let i = 0; i < bytes.length && i < 4 * 4; i += 4)
-    output.push([gpu.unpackUint16(bytes[i + 0], bytes[i + 1]), gpu.unpackUint16(bytes[i + 2], bytes[i + 3])]);
-  return output;
-};
-
-function printFragCoordPairs(width: number, bytes: Uint8Array) {
-  let s = "[\n";
-  for (var i = 0; i < bytes.length; i += 4) {
-    let v = gpu.unpackUint16(bytes[i + 0], bytes[i + 1]) + gpu.unpackUint16(bytes[i + 2], bytes[i + 3]) * width;
-    s += `\ti: ${i / 4}  \tv: ${v}\n`;
-  }
-  console.log(s + "]\n");
-}
-
-function printUint16Pairs(width: number, bytes: Uint8Array) {
-  let s = "[\n";
-  for (var i = 0; i < bytes.length; i += 4) {
-    let v = [gpu.unpackUint16(bytes[i + 0], bytes[i + 1]), gpu.unpackUint16(bytes[i + 2], bytes[i + 3])];
-    s += `\ti: ${i / 4}  \tp: [ ${v[0]}, ${v[1]} ]\n`;
-  }
-  console.log(s + "]\n");
-}
-
-function printInt16Pairs(width: number, bytes: Uint8Array) {
-  let s = "[\n";
-  for (var i = 0; i < bytes.length; i += 4) {
-    let v = [gpu.unpackInt16(bytes[i + 0], bytes[i + 1]), gpu.unpackInt16(bytes[i + 2], bytes[i + 3])];
-    s += `\ti: ${i / 4}  \tp: [ ${v[0]}, ${v[1]} ]\n`;
-  }
-  console.log(s + "]\n");
-}
-
-function createUint16Indices(textureWidth: number) {
-  const bytes = new Uint8Array(textureWidth * textureWidth * 4);
-  for (var i = 0; i < bytes.length; i += 4) {
-    var index = Math.floor(i / 4);
-    var xArr = gpu.packUint16(Math.floor(index % textureWidth));
-    var yArr = gpu.packUint16(Math.floor(index / textureWidth));
-    bytes[i + 0] = xArr[0];
-    bytes[i + 1] = xArr[1];
-    bytes[i + 2] = yArr[0];
-    bytes[i + 3] = yArr[1];
-  }
-  return bytes;
-}
+test("spawning fighters", () => {
+  const fighterSpatialIndex = new gpu.RenderTarget(4);
+  const fighterPositions = new gpu.RenderTarget(4);
+  const fighterColors = new gpu.RenderTarget(4);
+  const fighterFlags = new gpu.RenderTarget(4);
+  const fullTargetAlpha = new gpu.RenderTarget(4);
+  const singleTexelTargetAlpha = new gpu.RenderTarget(1);
+  const fighterPositionsCPU = new gpu.RenderTarget(2);
+  const fighterColorsCPU = new gpu.RenderTarget(2);
+  const fighterFlagsCPU = new gpu.RenderTarget(2);
+  const spawnCount = 3;
+  spawn.execute(
+    fighterSpatialIndex,
+    fighterPositions,
+    fighterColors,
+    fighterFlags,
+    fullTargetAlpha,
+    singleTexelTargetAlpha,
+    fighterPositionsCPU,
+    fighterColorsCPU,
+    fighterFlagsCPU,
+    spawnCount
+  );
+  expect(true).toEqual(true);
+});

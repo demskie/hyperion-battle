@@ -1,7 +1,7 @@
 import React from "react";
 import * as gpu from "gpu-compute";
 import * as THREE from "three";
-import { searchAndReplace } from "./searchandreplace";
+import * as common from "./common";
 import "./App.css";
 
 // https://webpack.js.org/loaders/raw-loader/
@@ -34,13 +34,37 @@ function App() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  const initializeIndicesShader = new gpu.ComputeShader(initializeIndicesFrag, searchAndReplace, gpu.passThruVert);
-  const initializeLocationsShader = new gpu.ComputeShader(initializeLocationsFrag, searchAndReplace, gpu.passThruVert);
-  const sortSidewaysEvenOddShader = new gpu.ComputeShader(sortSidewaysEvenOddFrag, searchAndReplace, gpu.passThruVert);
-  const sortSidewaysOddEvenShader = new gpu.ComputeShader(sortSidewaysOddEvenFrag, searchAndReplace, gpu.passThruVert);
-  const sortUpwardsEvenOddShader = new gpu.ComputeShader(sortUpwardsEvenOddFrag, searchAndReplace, gpu.passThruVert);
-  const sortUpwardsOddEvenShader = new gpu.ComputeShader(sortUpwardsOddEvenFrag, searchAndReplace, gpu.passThruVert);
-  const fighterComputeShader = new gpu.ComputeShader(fighterComputeFrag, searchAndReplace, gpu.passThruVert);
+  const initializeIndicesShader = new gpu.ComputeShader(
+    initializeIndicesFrag,
+    common.searchAndReplace,
+    gpu.passThruVert
+  );
+  const initializeLocationsShader = new gpu.ComputeShader(
+    initializeLocationsFrag,
+    common.searchAndReplace,
+    gpu.passThruVert
+  );
+  const sortSidewaysEvenOddShader = new gpu.ComputeShader(
+    sortSidewaysEvenOddFrag,
+    common.searchAndReplace,
+    gpu.passThruVert
+  );
+  const sortSidewaysOddEvenShader = new gpu.ComputeShader(
+    sortSidewaysOddEvenFrag,
+    common.searchAndReplace,
+    gpu.passThruVert
+  );
+  const sortUpwardsEvenOddShader = new gpu.ComputeShader(
+    sortUpwardsEvenOddFrag,
+    common.searchAndReplace,
+    gpu.passThruVert
+  );
+  const sortUpwardsOddEvenShader = new gpu.ComputeShader(
+    sortUpwardsOddEvenFrag,
+    common.searchAndReplace,
+    gpu.passThruVert
+  );
+  const fighterComputeShader = new gpu.ComputeShader(fighterComputeFrag, common.searchAndReplace, gpu.passThruVert);
 
   const width = 256;
 
