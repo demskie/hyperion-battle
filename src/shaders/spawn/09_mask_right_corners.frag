@@ -34,6 +34,9 @@ void main() {
     float rightCornersBool = floatEquals(position.x, 65535.0) * floatEquals(position.y, 0.0)
                            + floatEquals(position.x, 65535.0) * floatEquals(position.y, 65535.0);
 
+    // need to flip the bit for proper sorting
+    rightCornersBool = 1.0 - rightCornersBool;
+
     // get the byte value that contains the bit flag in question
 	vec4 flagsTexel = texture2D(u_fighterFlags, gl_FragCoord.xy / u_width);
 

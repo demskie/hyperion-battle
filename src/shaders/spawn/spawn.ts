@@ -1,35 +1,44 @@
 import * as gpu from "gpu-compute";
 import * as common from "../../common";
 
-common.prepareWebGLContext();
-
 // https://webpack.js.org/loaders/raw-loader/
 /* eslint import/no-webpack-loader-syntax: off */
-import maskFrag from "!!raw-loader!./01_mask.frag";
-import scanFrag from "!!raw-loader!./02_scan.frag";
-import grabTexelFrag from "!!raw-loader!./03_grab_texel.frag";
-import scatterFrag from "!!raw-loader!./04_scatter.frag";
-import insertPositionsFrag from "!!raw-loader!./05_insert_positions.frag";
-import insertGenericDataFrag from "!!raw-loader!./06_insert_generic_data.frag";
-import reinitializeFrag from "!!raw-loader!./07_reinitialize.frag";
-import maskLeftCornersFrag from "!!raw-loader!./08_mask_left_corners.frag";
-import maskRightCornersFrag from "!!raw-loader!./09_mask_right_corners.frag";
-import maskTopCornersFrag from "!!raw-loader!./10_mask_top_corners.frag";
-import maskBottomCornersFrag from "!!raw-loader!./11_mask_bottom_corners.frag";
+// import maskFrag from "!!raw-loader!./01_mask.frag";
+// import scanFrag from "!!raw-loader!./02_scan.frag";
+// import grabTexelFrag from "!!raw-loader!./03_grab_texel.frag";
+// import scatterFrag from "!!raw-loader!./04_scatter.frag";
+// import insertPositionsFrag from "!!raw-loader!./05_insert_positions.frag";
+// import insertGenericDataFrag from "!!raw-loader!./06_insert_generic_data.frag";
+// import reinitializeFrag from "!!raw-loader!./07_reinitialize.frag";
+// import maskLeftCornersFrag from "!!raw-loader!./08_mask_left_corners.frag";
+// import maskRightCornersFrag from "!!raw-loader!./09_mask_right_corners.frag";
+// import maskTopCornersFrag from "!!raw-loader!./10_mask_top_corners.frag";
+// import maskBottomCornersFrag from "!!raw-loader!./11_mask_bottom_corners.frag";
 
-const maskShader = new gpu.ComputeShader(maskFrag, common.searchAndReplace);
-const scanShader = new gpu.ComputeShader(scanFrag, common.searchAndReplace);
-const grabTexelShader = new gpu.ComputeShader(grabTexelFrag, common.searchAndReplace);
-const scatterShader = new gpu.ComputeShader(scatterFrag, common.searchAndReplace);
-const insertPositionsShader = new gpu.ComputeShader(insertPositionsFrag, common.searchAndReplace);
-const insertGenericDataShader = new gpu.ComputeShader(insertGenericDataFrag, common.searchAndReplace);
-const reinitializeShader = new gpu.ComputeShader(reinitializeFrag, common.searchAndReplace);
-const maskLeftCornersShader = new gpu.ComputeShader(maskLeftCornersFrag, common.searchAndReplace);
-const maskRightCornersShader = new gpu.ComputeShader(maskRightCornersFrag, common.searchAndReplace);
-const maskTopCornersShader = new gpu.ComputeShader(maskTopCornersFrag, common.searchAndReplace);
-const maskBottomCornersShader = new gpu.ComputeShader(maskBottomCornersFrag, common.searchAndReplace);
+// const maskShader = new gpu.ComputeShader(maskFrag, common.searchAndReplace);
+// const scanShader = new gpu.ComputeShader(scanFrag, common.searchAndReplace);
+// const grabTexelShader = new gpu.ComputeShader(grabTexelFrag, common.searchAndReplace);
+// const scatterShader = new gpu.ComputeShader(scatterFrag, common.searchAndReplace);
+// const insertPositionsShader = new gpu.ComputeShader(insertPositionsFrag, common.searchAndReplace);
+// const insertGenericDataShader = new gpu.ComputeShader(insertGenericDataFrag, common.searchAndReplace);
+// const reinitializeShader = new gpu.ComputeShader(reinitializeFrag, common.searchAndReplace);
+// const maskLeftCornersShader = new gpu.ComputeShader(maskLeftCornersFrag, common.searchAndReplace);
+// const maskRightCornersShader = new gpu.ComputeShader(maskRightCornersFrag, common.searchAndReplace);
+// const maskTopCornersShader = new gpu.ComputeShader(maskTopCornersFrag, common.searchAndReplace);
+// const maskBottomCornersShader = new gpu.ComputeShader(maskBottomCornersFrag, common.searchAndReplace);
 
 export function execute(
+  maskShader: gpu.ComputeShader,
+  scanShader: gpu.ComputeShader,
+  grabTexelShader: gpu.ComputeShader,
+  scatterShader: gpu.ComputeShader,
+  insertPositionsShader: gpu.ComputeShader,
+  insertGenericDataShader: gpu.ComputeShader,
+  reinitializeShader: gpu.ComputeShader,
+  maskLeftCornersShader: gpu.ComputeShader,
+  maskRightCornersShader: gpu.ComputeShader,
+  maskTopCornersShader: gpu.ComputeShader,
+  maskBottomCornersShader: gpu.ComputeShader,
   fighterSpatialIndex: gpu.RenderTarget,
   fighterPositions: gpu.RenderTarget,
   fighterColors: gpu.RenderTarget,
@@ -104,6 +113,9 @@ export function execute(
     u_cpuWidth: cpuWidth,
     u_width: width
   });
+
+  throw new Error(common.toInt16Pairs(fighterPositions.readPixels()));
+
   fighterColors.compute(insertGenericDataShader, {
     u_genericData: fighterColors,
     u_genericDataCPU: fighterColorsCPU,

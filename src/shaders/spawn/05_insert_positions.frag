@@ -20,6 +20,8 @@ float floatGreaterThan(float, float);
 float floatLessThanOrEqual(float, float);
 float floatGreaterThanOrEqual(float, float);
 float vec2ToUint16(vec2);
+vec2 int16ToVec2(float);
+float vec2ToInt16(vec2);
 vec2 uint16ToVec2(float);
 void unpackBooleans(float, inout bool arr[8]);
 float packBooleans(bool arr[8]);
@@ -27,16 +29,78 @@ bool getMSB(float);
 float clearMSB(float);
 float setMSB(float, bool);
 struct texcoord { float x, y, w; };
-texcoord addTexcoord(texcoord, float);
-texcoord subtractTexcoord(texcoord, float);
-texcoord resizeTexcoord(texcoord, float);
-void equalizeTexcoordWidths(inout texcoord, inout texcoord);
-texcoord addTexcoord(texcoord, texcoord);
-texcoord subtractTexcoord(texcoord, texcoord);
-float texcoordLessThan(texcoord, texcoord);
-float texcoordLessThanOrEqual(texcoord, texcoord);
-float texcoordGreaterThan(texcoord, texcoord);
-float texcoordGreaterThanOrEqual(texcoord, texcoord);
+
+// https://play.golang.org/p/71mX_f3CWaL
+
+texcoord multiply(texcoord t, float f) {
+    t.x *= f;
+    t.y = t.y * f + t.x / t.w;
+    t.x = mod(t.x, t.w);
+    return t;
+}
+
+texcoord divide(texcoord t, float f) {
+    t.x += mod(t.y, f) * t.w;
+    t.x /= f;
+    t.y /= f;
+    return t;
+}
+
+texcoord add(texcoord t, float f) {
+    t.y = t.y + floor(f / t.w) + floor((t.x + mod(f, t.w)) / t.w);
+    t.x = mod(t.x + f, t.w);
+    return t;
+}
+
+texcoord add(texcoord t1, texcoord t2) {
+    t2 = divide(t2, max(1.0, t1.w / t2.w));
+    t2 = multiply(t2, max(1.0, t2.w / t1.w));
+    t1 = add(t1, t2.x);
+    t1.y += t2.y;
+    return t1;
+}
+
+texcoord subtract(texcoord t, float f) {
+    t.y = t.y - floor(f / t.w) + floor((t.x - mod(f, t.w)) / t.w);
+    t.x = mod(t.x - f, t.w);
+    return t;
+}
+
+texcoord subtract(texcoord t1, texcoord t2) {
+    t2 = divide(t2, max(1.0, t1.w / t2.w));
+    t2 = multiply(t2, max(1.0, t2.w / t1.w));
+    t1 = subtract(t1, t2.x);
+    t1.y -= t2.y;
+    return t1;
+}
+
+float texcoordLessThan(texcoord t1, texcoord t2) {
+    float w = max(t1.w, t2.w);
+    t1 = multiply(texcoord(t1.x, t1.y, w), w / t1.w);
+    t2 = multiply(texcoord(t2.x, t2.y, w), w / t2.w);
+    return floatEquals(t1.y, t2.y) * floatLessThan(t1.x, t2.x) + floatLessThan(t1.y, t2.y);
+}
+
+float texcoordLessThanOrEqual(texcoord t1, texcoord t2) {
+    float w = max(t1.w, t2.w);
+    t1 = multiply(texcoord(t1.x, t1.y, w), w / t1.w);
+    t2 = multiply(texcoord(t2.x, t2.y, w), w / t2.w);
+    return floatEquals(t1.y, t2.y) * floatLessThanOrEqual(t1.x, t2.x) + floatLessThan(t1.y, t2.y);
+}
+
+float texcoordGreaterThan(texcoord t1, texcoord t2) {
+    float w = max(t1.w, t2.w);
+    t1 = multiply(texcoord(t1.x, t1.y, w), w / t1.w);
+    t2 = multiply(texcoord(t2.x, t2.y, w), w / t2.w);
+    return floatEquals(t1.y, t2.y) * floatGreaterThan(t1.x, t2.x) + floatGreaterThan(t1.y, t2.y);
+}
+
+float texcoordGreaterThanOrEqual(texcoord t1, texcoord t2) {
+    float w = max(t1.w, t2.w);
+    t1 = multiply(texcoord(t1.x, t1.y, w), w / t1.w);
+    t2 = multiply(texcoord(t2.x, t2.y, w), w / t2.w);
+    return floatEquals(t1.y, t2.y) * floatGreaterThanOrEqual(t1.x, t2.x) + floatGreaterThan(t1.y, t2.y);
+}
 
 void main() {
     // create texcoord representing our position in output texture
@@ -48,16 +112,16 @@ void main() {
     // get offset coordinates
     vec4 singleTexel = texture2D(u_singleTexelOffset, vec2(0.5, 0.5));
     singleTexel.r = clearMSB(singleTexel.r);
-    texcoord startEmptyTexcoord = texcoord(vec2ToUint16(singleTexel.rg), vec2ToUint16(singleTexel.ba), u_cpuWidth);
+    texcoord startEmptyTexcoord = texcoord(vec2ToUint16(singleTexel.rg), vec2ToUint16(singleTexel.ba), u_width);
 
     // determine offset coordinates for CPU data
-    texcoord cpuTexcoord = subtractTexcoord(startEmptyTexcoord, currentTexcoord);
+    texcoord cpuTexcoord = subtract(currentTexcoord, startEmptyTexcoord);
 
     // pull cpuTexel regardless if we're going to use it
     vec4 overwriteTexel = texture2D(u_fighterPositionsCPU, vec2(cpuTexcoord.x + 0.5, cpuTexcoord.y + 0.5) / cpuTexcoord.w);
 
     // calculate the out of bounds coordinates
-    texcoord outOfBoundsTexcoord = addTexcoord(startEmptyTexcoord, texcoord(u_cpuInvalidStartX, u_cpuInvalidStartY, u_cpuWidth));
+    texcoord outOfBoundsTexcoord = add(startEmptyTexcoord, texcoord(u_cpuInvalidStartX, u_cpuInvalidStartY, u_cpuWidth));
 
     // create texel for an out of bounds value that is clamped in one of the four corners
     vec4 outOfBoundsTexel = floatEquals(mod(currentTexcoord.x, 4.0), 0.0) * vec4(uint16ToVec2(0.0), uint16ToVec2(0.0))
