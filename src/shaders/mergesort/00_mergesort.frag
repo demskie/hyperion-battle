@@ -28,7 +28,72 @@ bool getMSB(float);
 float clearMSB(float);
 float setMSB(float, bool);
 
+// https://gist.github.com/EliCDavis/f35a9e4afb8e1c9ae94cce8f3c2c9b9a
+
+int AND(int n1, int n2){
+    
+    float v1 = float(n1);
+    float v2 = float(n2);
+    
+    int byteVal = 1;
+    int result = 0;
+    
+    for(int i = 0; i < 32; i++){
+        bool keepGoing = v1>0.0 || v2 > 0.0;
+        if(keepGoing){
+            
+            bool addOn = mod(v1, 2.0) > 0.0 && mod(v2, 2.0) > 0.0;
+            
+            if(addOn){
+                result += byteVal;
+            }
+            
+            v1 = floor(v1 / 2.0);
+            v2 = floor(v2 / 2.0);
+            byteVal *= 2;
+        } else {
+            return result;
+        }
+    }
+    return result;
+}
+
+int OR(int n1, int n2){
+
+    float v1 = float(n1);
+    float v2 = float(n2);
+    
+    int byteVal = 1;
+    int result = 0;
+    
+    for(int i = 0; i < 32; i++){
+        bool keepGoing = v1>0.0 || v2 > 0.0;
+        if(keepGoing){
+            
+            bool addOn = mod(v1, 2.0) > 0.0 || mod(v2, 2.0) > 0.0;
+            
+            if(addOn){
+                result += byteVal;
+            }
+            
+            v1 = floor(v1 / 2.0);
+            v2 = floor(v2 / 2.0);
+            
+            byteVal *= 2;
+        } else {
+            return result;
+        }
+    }
+    return result;	
+}
+
+int RShift(int num, float shifts){
+    return int(floor(float(num) / pow(2.0, shifts)));
+}
+
+
 float bitwiseAnd65536(float a, float b) {
+    return float(AND(int(a), int(b)));
     float o = 0.0;
     o += 32768.0 * floatGreaterThanOrEqual(a, 32768.0) * floatGreaterThanOrEqual(b, 32768.0);
     a -= 32768.0 * floatGreaterThanOrEqual(a, 32768.0);
@@ -184,6 +249,7 @@ vec2 toVec2(texcoord t) {
     return vec2(t.x, t.y);
 }
 
+
 void main() {
     texcoord currentTexcoord = texcoord(floor(gl_FragCoord.x), floor(gl_FragCoord.y), u_width);
     texcoord prevTexcoord = subtract(currentTexcoord, texcoord(u_dx, u_dy, u_width));
@@ -193,34 +259,45 @@ void main() {
                            * floatEquals(bitwiseAnd65536(currentTexcoord.y, u_py), u_ry);
 
     float isSecondPixelBool = floatEquals(isFirstPixelBool, 0.0)
+                            * floatGreaterThanOrEqual(prevTexcoord.x, 0.0)
+                            * floatGreaterThanOrEqual(prevTexcoord.y, 0.0)
                             * floatEquals(bitwiseAnd65536(prevTexcoord.x, u_px), u_rx) 
                             * floatEquals(bitwiseAnd65536(prevTexcoord.y, u_py), u_ry);
     
-    isFirstPixelBool += floatEquals(isFirstPixelBool, 0.0) * floatEquals(isSecondPixelBool, 0.0);
+    // isFirstPixelBool += floatEquals(isFirstPixelBool, 0.0) * floatEquals(isSecondPixelBool, 0.0);
 
-    vec2 firstFragCoord  = isFirstPixelBool  * (toVec2(currentTexcoord) + vec2(0.5, 0.5))
-                         + isSecondPixelBool * (toVec2(prevTexcoord)    + vec2(0.5, 0.5));
-    vec2 secondFragCoord = isFirstPixelBool  * (toVec2(nextTexcoord)    + vec2(0.5, 0.5))
-                         + isSecondPixelBool * (toVec2(currentTexcoord) + vec2(0.5, 0.5));
+    // vec2 firstFragCoord  = isFirstPixelBool  * (toVec2(currentTexcoord) + vec2(0.5, 0.5))
+    //                      + isSecondPixelBool * (toVec2(prevTexcoord)    + vec2(0.5, 0.5));
+    // vec2 secondFragCoord = isFirstPixelBool  * (toVec2(nextTexcoord)    + vec2(0.5, 0.5))
+    //                      + isSecondPixelBool * (toVec2(currentTexcoord) + vec2(0.5, 0.5));
 
-    vec4 firstTexel = texture2D(u_tex, firstFragCoord / u_width);
-    vec4 secondTexel = texture2D(u_tex, secondFragCoord / u_width);
+    // vec4 firstTexel = texture2D(u_tex, firstFragCoord / u_width);
+    // vec4 secondTexel = texture2D(u_tex, secondFragCoord / u_width);
 
-    float swapBool = 0.0;
-    float notSwapBool = 0.0;
-    swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(firstTexel.r, secondTexel.r);
-	notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(firstTexel.r, secondTexel.r);
-	swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(firstTexel.g, secondTexel.g);
-	notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(firstTexel.g, secondTexel.g);
-	swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(firstTexel.b, secondTexel.b);
-	notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(firstTexel.b, secondTexel.b);
-	swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(firstTexel.a, secondTexel.a);
-	notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(firstTexel.a, secondTexel.a);
-    notSwapBool += floatEquals(notSwapBool, 0.0) * floatEquals(swapBool, 0.0);
+    // float swapBool = 0.0;
+    // float notSwapBool = 0.0;
+    // swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(firstTexel.r, secondTexel.r);
+	// notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(firstTexel.r, secondTexel.r);
+	// swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(firstTexel.g, secondTexel.g);
+	// notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(firstTexel.g, secondTexel.g);
+	// swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(firstTexel.b, secondTexel.b);
+	// notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(firstTexel.b, secondTexel.b);
+	// swapBool    += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatGreaterThan(firstTexel.a, secondTexel.a);
+	// notSwapBool += floatEquals(swapBool, 0.0) * floatEquals(notSwapBool, 0.0) * floatLessThan(firstTexel.a, secondTexel.a);
+    // notSwapBool += floatEquals(notSwapBool, 0.0) * floatEquals(swapBool, 0.0);
     
-    gl_FragColor = isFirstPixelBool  * notSwapBool * firstTexel
-                 + isFirstPixelBool  * swapBool    * secondTexel
-                 + isSecondPixelBool * notSwapBool * secondTexel
-                 + isSecondPixelBool * swapBool    * firstTexel
-                 + floatEquals(isFirstPixelBool, 0.0) * floatEquals(isSecondPixelBool, 0.0) * firstTexel;
+    // gl_FragColor = isFirstPixelBool  * notSwapBool * firstTexel
+    //              + isFirstPixelBool  * swapBool    * secondTexel
+    //              + isSecondPixelBool * notSwapBool * secondTexel
+    //              + isSecondPixelBool * swapBool    * firstTexel
+    //              + floatEquals(isFirstPixelBool, 0.0) * floatEquals(isSecondPixelBool, 0.0) * firstTexel;
+
+    // gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0)
+    //              + vec4(0.0, 0.0, 0.0, 1.0 / 255.0) * isFirstPixelBool
+    //              + vec4(0.0, 0.0, 0.0, 2.0 / 255.0) * isSecondPixelBool;
+    vec2 v = toVec2(add(currentTexcoord, texcoord(u_dx, u_dy, u_width))) / u_width;
+
+    gl_FragColor = // floatEquals(bitwiseAnd65536(currentTexcoord.x, u_px), u_rx) 
+                 // * floatEquals(bitwiseAnd65536(currentTexcoord.y, u_py), u_ry)
+                  vec4(uint16ToVec2(v.x), uint16ToVec2(v.y));
 }

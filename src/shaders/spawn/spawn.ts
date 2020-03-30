@@ -114,7 +114,7 @@ export function execute(
     u_width: width
   });
 
-  throw new Error(common.toInt16Pairs(fighterPositions.readPixels()));
+  // throw new Error(common.toInt16Pairs(fighterPositions.readPixels()));
 
   fighterColors.compute(insertGenericDataShader, {
     u_genericData: fighterColors,
