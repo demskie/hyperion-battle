@@ -13,7 +13,7 @@ func TestFactorial(t *testing.T) {
 
 	bignumDec(n)
 
-	for bignumIsZero(n) == 0 {
+	for bignumIsZero(n) == false {
 		bignumMul(tmp, n, res)
 		bignumDec(n)
 		bignumAssign(tmp, res)
