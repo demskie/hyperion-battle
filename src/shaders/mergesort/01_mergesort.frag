@@ -33,11 +33,6 @@ float floatLessThanOrEqual(float, float);
 float floatGreaterThanOrEqual(float, float);
 
 void bignumInit(inout float [16]);
-void bignumFrom(inout float [16], float);
-void bignumFrom(inout float [16], float [2]);
-void bignumFrom(inout float [16], float [4]);
-void bignumFrom(inout float [16], float [8]);
-void bignumFrom(inout float [16], float [16]);
 void bignumAssign(inout float [16], inout float [16]);
 void bignumAdd(inout float [16], inout float [16], inout float [16]);
 void bignumSub(inout float [16], inout float [16], inout float [16]);
@@ -101,6 +96,12 @@ float xorByte(float a, float b) {
     return o;
 }
 
+void bignumInit(inout float dst[16]) {
+    for (int i = 0; i < 16; i++) {
+        dst[i] = 0.0;
+    }
+}
+
 void bignumAssign(inout float dst[16], inout float src[16]) {
     for (int i = 0; i < 16; i++) {
         dst[i] = src[i];
@@ -110,14 +111,16 @@ void bignumAssign(inout float dst[16], inout float src[16]) {
 void rshiftWord(inout float bn[16], float nwords) {
     nwords = max(floor(nwords), 0.0);
     for (int i = 0; i < 16; i++) {
-        bn[i] = bn[int(min(float(i) + nwords, 15.0))] * floatLessThanOrEqual(float(i) + nwords, 15.0);
+        bn[i] = bn[int(min(float(i) + nwords, 15.0))] 
+              * floatLessThanOrEqual(float(i) + nwords, 15.0);
     }
 }
 
 void lshiftWord(inout float bn[16], float nwords) {
     nwords = max(floor(nwords), 0.0);
     for (int i = 15; i >= 0; i--) {
-        bn[i] = bn[int(max(float(i) - nwords, 0.0))] * floatGreaterThanOrEqual(float(i) - nwords, 0.0);
+        bn[i] = bn[int(max(float(i) - nwords, 0.0))] 
+              * floatGreaterThanOrEqual(float(i) - nwords, 0.0);
     }
 }
 
@@ -133,6 +136,183 @@ void rshiftOneBit(inout float bn[16]) {
         bn[i] = xorByte(rshiftByte(bn[i], 1.0), lshiftByte(bn[i+1], 7.0));
     }
     bn[15] = rshiftByte(bn[15], 1.0);
+}
+
+void bignumDec(inout float bn[16]) {
+	float done = 0.0;
+	for (int i = 0; i < 16; i++) {
+        bn[i] -= 1.0 - done;
+        done = floatGreaterThanOrEqual(bn[i], 0.0);
+        bn[i] = mod(bn[i], 256.0);
+	}
+}
+
+void bignumInc(inout float bn[16]) {
+	float done = 0.0;
+	for (int i = 0; i < 16; i++) {
+        bn[i] += 1.0 - done;
+        done = floatLessThanOrEqual(bn[i], 255.0);
+        bn[i] = mod(bn[i], 256.0);
+	}
+}
+
+void bignumAdd(inout float a[16], inout float b[16], inout float c[16]) {
+    float carry = 0.0;
+    for (int i = 0; i < 16; i++) {
+        float tmp = a[i] + b[i] + carry;
+        carry = floatGreaterThan(tmp, 255.0);
+        c[i] = mod(tmp, 256.0);
+    }
+}
+
+void bignumSub(inout float a[16], inout float b[16], inout float c[16]) {
+    float borrow = 0.0;
+    for (int i = 0; i < 16; i++) {
+        float t1 = a[i] + 256.0;
+        float t2 = b[i] + borrow;
+        float res = t1 - t2;
+        borrow = floatLessThanOrEqual(res, 255.0);
+        c[i] = mod(res, 256.0);
+    }
+}
+
+void bignumMul(inout float a[16], inout float b[16], inout float c[16]) {
+    bignumInit(c);
+	for (int i = 0; i < 16; i++) {
+        float row[16];
+		for (int j = 0; j < 16; j++) {
+            float inter = a[i] * b[j];
+			float tmp[16];
+			tmp[0] = mod(inter, 256.0);
+            tmp[1] = floor(inter / 256.0);
+			lshiftWord(tmp, float(i+j));
+			if (i+j < 16) {
+				bignumAdd(tmp, row, row);
+			}
+		}
+		bignumAdd(c, row, c);
+	}
+}
+
+void bignumDiv(inout float a[16], inout float b[16], inout float c[16]) {
+    bignumInit(c);
+    float current[16];
+    float denom[16];
+    float tmp[16];
+    current[0] = 1.0;
+    bignumAssign(denom, b);
+	bignumAssign(tmp, a);
+    float overflow = 0.0;
+    for (int i = 0; i < 128; i++) {
+        if (bignumCmp(denom, a) < 1.0) {
+            overflow += floatEquals(overflow, 0.0) 
+                      * floatGreaterThanOrEqual(denom[15], 1.0+floor(255.0/2.0));
+            if (overflow == 0.0) {
+                lshiftOneBit(current);
+                lshiftOneBit(denom);
+            }
+		}
+    }
+    if (overflow == 0.0) {
+        rshiftOneBit(denom);
+        rshiftOneBit(current);
+    }
+    for (int i = 0; i < 128; i++) {
+        if (bignumIsZero(current) == 0.0) {
+            if (bignumCmp(tmp, denom) > -1.0) {
+                bignumSub(tmp, denom, tmp);
+                bignumOr(c, current, c);
+            }
+            rshiftOneBit(current);
+            rshiftOneBit(denom);
+        }
+    }
+}
+
+void bignumLshift(inout float a[16], inout float b[16], float nbits) {
+    nbits = max(floor(nbits), 0.0);
+    bignumAssign(b, a);
+    rshiftWord(b, floor(nbits / 8.0));
+    float bits = floor(mod(nbits, 8.0));
+    if (bits != 0.0) {
+        for (int i = 15; i > 0; i--) {
+			b[i] = orByte(lshiftByte(b[i], bits), rshiftByte(b[i-1], 8.0-bits));
+		}
+		b[0] = lshiftByte(b[0], bits);
+    }
+}
+
+void bignumRshift(inout float a[16], inout float b[16], float nbits) {
+    nbits = max(floor(nbits), 0.0);
+    bignumAssign(b, a);
+    rshiftWord(b, floor(nbits / 8.0));
+    float bits = floor(mod(nbits, 8.0));
+    if (bits != 0.0) {
+        for (int i = 0; i < 15; i++) {
+			b[i] = orByte(rshiftByte(b[i], bits), lshiftByte(b[i+1], 8.0-bits));
+		}
+		b[15] = rshiftByte(b[15], bits);
+    }
+}
+
+void bignumMod(inout float a[16], inout float b[16], inout float c[16]) {
+	float tmp[16];
+	bignumDivmod(a, b, tmp, c);
+}
+
+void bignumDivmod(inout float a[16], inout float b[16], inout float c[16], inout float d[16]) {
+	float tmp[16];
+	bignumDiv(a, b, c);
+	bignumMul(c, b, tmp);
+	bignumSub(a, tmp, d);
+}
+
+void bignumAnd(inout float a[16], inout float b[16], inout float c[16]) {
+    for (int i = 0; i < 16; i++) {
+        float v1 = a[i];
+        float v2 = b[i];
+        float o = 0.0;
+        float x = 128.0;
+        for (int j = 0; j < 8; j++) {
+            o += x * min(floatGreaterThanOrEqual(v1, x), floatGreaterThanOrEqual(v2, x));
+            v1 -= x * floatGreaterThanOrEqual(v1, x);
+            v2 -= x * floatGreaterThanOrEqual(v2, x);
+            x /= 2.0;
+        }
+        c[i] = o;
+    }
+}
+
+void bignumOr(inout float a[16], inout float b[16], inout float c[16]) {
+    for (int i = 0; i < 16; i++) {
+        float v1 = a[i];
+        float v2 = b[i];
+        float o = 0.0;
+        float x = 128.0;
+        for (int j = 0; j < 8; j++) {
+            o += x * max(floatGreaterThanOrEqual(v1, x), floatGreaterThanOrEqual(v2, x));
+            v1 -= x * floatGreaterThanOrEqual(v1, x);
+            v2 -= x * floatGreaterThanOrEqual(v2, x);
+            x /= 2.0;
+        }
+        c[i] = o;
+    }
+}
+
+void bignumXor(inout float a[16], inout float b[16], inout float c[16]) {
+    for (int i = 0; i < 16; i++) {
+        float v1 = a[i];
+        float v2 = b[i];
+        float o = 0.0;
+        float x = 128.0;
+        for (int j = 0; j < 8; j++) {
+            o += x * floatNotEquals(floatGreaterThanOrEqual(v1, x), floatGreaterThanOrEqual(v2, x));
+            v1 -= x * floatGreaterThanOrEqual(v1, x);
+            v2 -= x * floatGreaterThanOrEqual(v2, x);
+            x /= 2.0;
+        }
+        c[i] = o;
+    }
 }
 
 float bignumCmp(inout float a[16], inout float b[16]) {
@@ -205,30 +385,32 @@ void main(void)
 {
     // get self
     vec4 self = texture2D(Data, gl_FragCoord.xy / Width);
-    float i = floor(gl_FragCoord.x) + floor(gl_FragCoord.y); 
+    float i = floor(gl_FragCoord.x) + floor(gl_FragCoord.y) * Width; 
 
     // my position within the range to merge
-    float j = floor(mod(i,TwoStage));
+    float j = floor(mod(i, TwoStage));
 
     float compare;
 
-    if ( (j<Pass_mod_Stage) || (j>TwoStage_PmS_1) ) 
-	// must copy -> compare with self
-	compare = 0.0;
-    else
-	// must sort
-	if ( mod((j+Pass_mod_Stage) / Pass,2.0) < 1.0)
-	    // we are on the left side -> compare with partner on the right
-	    compare = 1.0;
-	else
-	    // we are on the right side -> compare with partner on the left
-	    compare = -1.0;
+    if ( (j < Pass_mod_Stage) || (j > TwoStage_PmS_1) ) {
+        // must copy -> compare with self
+        compare = 0.0;
+    } else {
+        // must sort
+        if ( mod((j+Pass_mod_Stage) / Pass,2.0) < 1.0) {
+            // we are on the left side -> compare with partner on the right
+            compare = 1.0;
+        } else {
+            // we are on the right side -> compare with partner on the left
+            compare = -1.0;
+        }
+    }
 
     // get the partner
-    float adr = i + compare*Pass;
-    vec4 partner = texture2D(Data, (vec2(floor(mod(adr, Width)),
-					                     floor(adr / Width)) + vec2(0.5, 0.5)) / Width);
+    float adr = i + compare * Pass;
+    vec2 partnerCoord = vec2(floor(mod(adr, Width)) + 0.5, floor(adr / Width) + 0.5);
+    vec4 partner = texture2D(Data, partnerCoord.xy / Width);
 
     // on the left its a < operation, on the right its a >= operation
-    gl_FragColor = (self.x*compare < partner.x*compare) ? self : partner;
+    gl_FragColor = (self.a * compare < partner.a * compare) ? self : partner;
 }

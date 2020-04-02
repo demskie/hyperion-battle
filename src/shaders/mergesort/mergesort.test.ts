@@ -12,7 +12,7 @@ test("mergesort", () => {
   const length = 16;
 
   const mergeSortShader = new gpu.ComputeShader(
-    readFileSync(require.resolve("./00_mergesort.frag"), "utf8"),
+    readFileSync(require.resolve("./01_mergesort.frag"), "utf8"),
     common.searchAndReplace
   );
 
@@ -29,6 +29,39 @@ test("mergesort", () => {
   });
   target.pushTextureData(new Uint8Array(arr));
 
+  let pstage = 1;
+  let ppass = pstage;
+
+  for (;;) {
+    for (;;) {
+      console.log(`pstage: ${pstage} ppass: ${ppass}`);
+      // console.log({
+      //   TwoStage: pstage + pstage,
+      //   Pass_mod_Stage: ppass % pstage,
+      //   TwoStage_PmS_1: pstage + pstage - (ppass % pstage) - 1,
+      //   Width: target.width,
+      //   Height: target.width,
+      //   Pass: ppass
+      // });
+
+      target.compute(mergeSortShader, {
+        Data: target,
+        TwoStage: pstage + pstage,
+        Pass_mod_Stage: ppass % pstage,
+        TwoStage_PmS_1: pstage + pstage - (ppass % pstage) - 1,
+        Width: target.width,
+        Height: target.width,
+        Pass: ppass
+      });
+
+      ppass /= 2;
+      if (ppass < 1) break;
+    }
+    pstage *= 2;
+    ppass = pstage;
+    if (pstage >= Math.pow(target.width, 2)) break;
+  }
+
   const t = Math.floor(Math.ceil(Math.log2(length)));
 
   let p = Math.floor(Math.pow(2, t - 1));
@@ -42,37 +75,26 @@ test("mergesort", () => {
       // per pixel
       for (let i = 0; i < length - d; ++i) {
         if ((i & p) == r) {
-          console.error(`${i} cmp ${i + d}`);
+          // console.error(`${i} cmp ${i + d}`);
         }
       }
-      target.compute(mergeSortShader, {
-        u_tex: target,
-        u_px: p % target.width,
-        u_py: Math.floor(p / target.width),
-        u_rx: r % target.width,
-        u_ry: Math.floor(r / target.width),
-        u_dx: d % target.width,
-        u_dy: Math.floor(d / target.width),
-        u_lx: (length - d) % target.width,
-        u_ly: Math.floor((length - d) / target.width),
-        u_width: target.width
-      });
+      // target.compute(mergeSortShader, {
+      //   Data: target,
+      //   TwoStage: s + s,
+      //   Pass_mod_Stage: Math.floor(p / target.width),
+      //   u_rx: r % target.width,
+      //   u_ry: Math.floor(r / target.width),
+      //   u_dx: d % target.width,
+      //   u_dy: Math.floor(d / target.width),
+      //   u_lx: (length - d) % target.width,
+      //   u_ly: Math.floor((length - d) / target.width),
+      //   Width: target.width,
+      //   Height: target.width
+      // });
 
-      console.log({
-        u_px: p % target.width,
-        u_py: Math.floor(p / target.width),
-        u_rx: r % target.width,
-        u_ry: Math.floor(r / target.width),
-        u_dx: d % target.width,
-        u_dy: Math.floor(d / target.width),
-        u_lx: (length - d) % target.width,
-        u_ly: Math.floor((length - d) / target.width),
-        u_width: target.width
-      });
+      // console.log(common.toUint16Pairs(target.readPixels()));
 
-      console.log(common.toUint16Pairs(target.readPixels()));
-
-      console.error("////////////////////////////////");
+      // console.error("////////////////////////////////");
 
       // prepare for next pass
       d = q - p;
