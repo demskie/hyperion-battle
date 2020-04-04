@@ -20,10 +20,22 @@ test("mergesort", () => {
 
   const arr = [] as number[];
   [
-    [0, 0, 0, 128],
-    [0, 0, 0, 127],
-    [0, 0, 0, 126],
-    [0, 0, 0, 125]
+    [0, 10, 0, 200],
+    [0, 11, 0, 190],
+    [0, 12, 0, 180],
+    [0, 13, 0, 170],
+    [0, 14, 0, 160],
+    [0, 15, 0, 150],
+    [0, 16, 0, 140],
+    [0, 17, 0, 130],
+    [0, 18, 0, 120],
+    [0, 19, 0, 110],
+    [0, 20, 0, 100],
+    [0, 21, 0, 90],
+    [0, 22, 0, 80],
+    [0, 23, 0, 70],
+    [0, 24, 0, 60],
+    [0, 25, 0, 50]
   ].forEach((vals: number[]) => {
     arr.push(...vals);
   });
@@ -34,16 +46,6 @@ test("mergesort", () => {
 
   for (;;) {
     for (;;) {
-      console.log(`pstage: ${pstage} ppass: ${ppass}`);
-      // console.log({
-      //   TwoStage: pstage + pstage,
-      //   Pass_mod_Stage: ppass % pstage,
-      //   TwoStage_PmS_1: pstage + pstage - (ppass % pstage) - 1,
-      //   Width: target.width,
-      //   Height: target.width,
-      //   Pass: ppass
-      // });
-
       target.compute(mergeSortShader, {
         Data: target,
         TwoStage: pstage + pstage,
@@ -53,7 +55,6 @@ test("mergesort", () => {
         Height: target.width,
         Pass: ppass
       });
-
       ppass /= 2;
       if (ppass < 1) break;
     }
@@ -62,124 +63,5 @@ test("mergesort", () => {
     if (pstage >= Math.pow(target.width, 2)) break;
   }
 
-  const t = Math.floor(Math.ceil(Math.log2(length)));
-
-  let p = Math.floor(Math.pow(2, t - 1));
-
-  while (p > 0) {
-    let q = Math.floor(Math.pow(2, t - 1));
-    let r = 0;
-    let d = p;
-
-    while (d > 0) {
-      // per pixel
-      for (let i = 0; i < length - d; ++i) {
-        if ((i & p) == r) {
-          // console.error(`${i} cmp ${i + d}`);
-        }
-      }
-      // target.compute(mergeSortShader, {
-      //   Data: target,
-      //   TwoStage: s + s,
-      //   Pass_mod_Stage: Math.floor(p / target.width),
-      //   u_rx: r % target.width,
-      //   u_ry: Math.floor(r / target.width),
-      //   u_dx: d % target.width,
-      //   u_dy: Math.floor(d / target.width),
-      //   u_lx: (length - d) % target.width,
-      //   u_ly: Math.floor((length - d) / target.width),
-      //   Width: target.width,
-      //   Height: target.width
-      // });
-
-      // console.log(common.toUint16Pairs(target.readPixels()));
-
-      // console.error("////////////////////////////////");
-
-      // prepare for next pass
-      d = q - p;
-      q = Math.floor(q / 2);
-      r = p;
-    }
-    p = Math.floor(p / 2);
-  }
-
   throw new Error(common.toUint16Pairs(target.readPixels()));
 });
-
-/*
-test("mergesort", () => {
-  const length = 16;
-
-  const mergeSortShader = new gpu.ComputeShader(
-    readFileSync(require.resolve("./01_mergesort.frag"), "utf8"),
-    common.searchAndReplace
-  );
-
-  const target = new gpu.RenderTarget(4);
-
-  const arr = [] as number[];
-  [
-    [0, 0, 0, 128],
-    [0, 0, 0, 127],
-    [0, 0, 0, 126],
-    [0, 0, 0, 125]
-  ].forEach((vals: number[]) => {
-    arr.push(...vals);
-  });
-  target.pushTextureData(new Uint8Array(arr));
-
-  const n = length;
-
-  const logFieldsize = Math.log2(target.width);
-
-  let stepsLeft = ((logFieldsize + logFieldsize) * (logFieldsize + logFieldsize + 1)) / 2;
-
-  let stage = 0;
-  let pass = 0;
-
-  while (stepsLeft--) {
-    const pstage = 1 << stage;
-    const ppass = 1 << pass;
-
-    // console.log(`pstage ${pstage} ppass ${ppass} stage ${stage} pass ${pass} stepsLeft ${stepsLeft}`);
-
-    target.compute(mergeSortShader, {
-      Data: target,
-      TwoStage: pstage + pstage,
-      Pass_mod_Stage: ppass % pstage,
-      TwoStage_PmS_1: pstage + pstage - (ppass % pstage) - 1,
-      Width: target.width,
-      Height: target.width,
-      Pass: ppass
-    });
-
-    if (pass > 0) {
-      pass--;
-    } else {
-      stage++;
-      pass = stage;
-    }
-  }
-
-  // stepsLeft = totalSteps = ((logFieldsize+logFieldsize)*(logFieldsize+logFieldsize+1))/2;
-  // stage = pass = -1;
-
-  // int pstage = (1<<stage);
-  // int ppass  = (1<<pass);
-
-  // glUniform3fARB(oddevenMergeSort.getUniformLocation("Param1"),
-  //                float(pstage+pstage),
-  //                float(ppass%pstage),
-  //                float((pstage+pstage)-(ppass%pstage)-1));
-  // glUniform3fARB(oddevenMergeSort.getUniformLocation("Param2"),
-  //                float(width),
-  //                float(height),
-  //                float(ppass));
-  // glUniform1iARB(oddevenMergeSort.getUniformLocation("Data"), 0);
-  // staticdebugmsg("sort","stage "<<pstage<<" pass "<<ppass);
-
-  throw new Error(common.toUint16Pairs(target.readPixels()));
-});
-
-*/

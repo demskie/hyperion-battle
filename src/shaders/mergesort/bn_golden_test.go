@@ -45,28 +45,44 @@ func TestGolden(t *testing.T) {
 		case ">":
 			bignumRshift(n1, res, int(oracle.b))
 			break
+		case "sqrt":
+			bignumSqrt(n1, res)
+			break
+		case "mulsimple":
+			bignumMulSimple(n1, int(n2[0]), res)
+		case "divsimple":
+			bignumDivSimple(n1, int(n2[0]), res)
+		case "modsimple":
+			bignumModSimple(n1, int(n2[0]), res)
 		default:
 			panic("unknown operator detected")
 		}
 		if oracle.op == "p" {
-			if bignumCmp(n3, res) == equal {
+			if bignumCmp(n3, res) == 0 {
 				t.Logf("[ OK ] pow(%v, %v) = %v\n", oracle.a, oracle.b, oracle.c)
 			} else {
-				t.Logf("[ FAIL ] pow(%v, %v) = %v\n", oracle.a, oracle.b, oracle.c)
+				t.Logf("[ FAIL ] pow(%v, %v) = %v and not %v\n", oracle.a, oracle.b, bignumToString(res), oracle.c)
 				failures++
 			}
 		} else if oracle.op == "<" || oracle.op == ">" {
-			if bignumCmp(n3, res) == equal {
+			if bignumCmp(n3, res) == 0 {
 				t.Logf("[ OK ] %v %v%v %v = %v\n", oracle.a, oracle.op, oracle.op, oracle.b, oracle.c)
 			} else {
-				t.Logf("[ FAIL ] %v %v%v %v = %v\n", oracle.a, oracle.op, oracle.op, oracle.b, oracle.c)
+				t.Logf("[ FAIL ] %v %v%v %v = %v and not %v\n", oracle.a, oracle.op, oracle.op, oracle.b, bignumToString(res), oracle.c)
+				failures++
+			}
+		} else if oracle.op == "sqrt" || oracle.op == "mulsimple" || oracle.op == "divsimple" || oracle.op == "modsimple" {
+			if bignumCmp(n3, res) == 0 {
+				t.Logf("[ OK ] %v(%v, %v) = %v\n", oracle.op, oracle.a, oracle.b, oracle.c)
+			} else {
+				t.Logf("[ FAIL ] %v(%v, %v) = %v and not %v\n", oracle.op, oracle.a, oracle.b, bignumToString(res), oracle.c)
 				failures++
 			}
 		} else {
-			if bignumCmp(n3, res) == equal {
+			if bignumCmp(n3, res) == 0 {
 				t.Logf("[ OK ] %v %v %v = %v\n", oracle.a, oracle.op, oracle.b, oracle.c)
 			} else {
-				t.Logf("[ FAIL ] %v %v %v = %v\n", oracle.a, oracle.op, oracle.b, oracle.c)
+				t.Logf("[ FAIL ] %v %v %v = %v and not %v\n", oracle.a, oracle.op, oracle.b, bignumToString(res), oracle.c)
 				failures++
 			}
 		}
@@ -235,5 +251,16 @@ func getTestData() []td {
 		td{">", 262144, 18, 1},
 		td{">", 524288, 19, 1},
 		td{">", 1048576, 20, 1},
+		td{"sqrt", 12345678, 0, 3513},
+		td{"sqrt", 512, 0, 22},
+		td{"sqrt", 1, 0, 1},
+		td{"mulsimple", 1, 2, 2},
+		td{"mulsimple", 12345, 123, 1518435},
+		td{"divsimple", 12345, 123, 100},
+		td{"divsimple", 4, 2, 2},
+		td{"modsimple", 123456789, 1, 0},
+		td{"modsimple", 123456789, 2, 1},
+		td{"modsimple", 123456789, 123, 90},
+		td{"modsimple", 123456789, 255, 69},
 	}
 }

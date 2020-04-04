@@ -34,6 +34,7 @@ float floatGreaterThanOrEqual(float, float);
 
 void bignumInit(inout float [16]);
 void bignumAssign(inout float [16], inout float [16]);
+void bignumAssignIfTrue(inout float [16], inout float [16], bool);
 void bignumAdd(inout float [16], inout float [16], inout float [16]);
 void bignumSub(inout float [16], inout float [16], inout float [16]);
 void bignumMul(inout float [16], inout float [16], inout float [16]);
@@ -53,11 +54,11 @@ float bignumIsZero(inout float [16]);
 float bignumCmp(inout float [16], inout float [16]);
 
 float lshiftByte(float i, float m) {
-    return floor(i * pow(2.0, m));
+    return floor(i * pow(2.0, min(m, 7.0)));
 }
 
 float rshiftByte(float i, float m) {
-    return floor(i / pow(2.0, m));
+    return floor(i / pow(2.0, min(m, 7.0)));
 }
 
 float andByte(float a, float b) {
@@ -108,6 +109,13 @@ void bignumAssign(inout float dst[16], inout float src[16]) {
     }
 }
 
+void bignumAssignIfTrue(inout float dst[16], inout float src[16], bool b) {
+    float f = clamp(floor(float(b)), 0.0, 1.0);
+    for (int i = 0; i < 16; i++) {
+        dst[i] = f * src[i] + (f - 1.0) * dst[i];
+    }
+}
+
 void rshiftWord(inout float bn[16], float nwords) {
     nwords = max(floor(nwords), 0.0);
     for (int i = 0; i < 16; i++) {
@@ -145,6 +153,8 @@ void bignumDec(inout float bn[16]) {
         done = floatGreaterThanOrEqual(bn[i], 0.0);
         bn[i] = mod(bn[i], 256.0);
 	}
+    float t[16];
+    bignumAssignIfTrue(bn, t, done == 0.0);
 }
 
 void bignumInc(inout float bn[16]) {
@@ -154,6 +164,9 @@ void bignumInc(inout float bn[16]) {
         done = floatLessThanOrEqual(bn[i], 255.0);
         bn[i] = mod(bn[i], 256.0);
 	}
+    float t[16];
+    for (int i = 0; i < 16; i++) t[i] = 255.0;
+    bignumAssignIfTrue(bn, t, done == 0.0);
 }
 
 void bignumAdd(inout float a[16], inout float b[16], inout float c[16]) {
@@ -168,11 +181,11 @@ void bignumAdd(inout float a[16], inout float b[16], inout float c[16]) {
 void bignumSub(inout float a[16], inout float b[16], inout float c[16]) {
     float borrow = 0.0;
     for (int i = 0; i < 16; i++) {
-        float t1 = a[i] + 256.0;
-        float t2 = b[i] + borrow;
-        float res = t1 - t2;
-        borrow = floatLessThanOrEqual(res, 255.0);
-        c[i] = mod(res, 256.0);
+        float v1 = a[i] + 256.0;
+        float v2 = b[i] + borrow;
+        float v3 = v1 - v2;
+        borrow = floatLessThanOrEqual(v3, 255.0);
+        c[i] = mod(v3, 256.0);
     }
 }
 
@@ -182,13 +195,13 @@ void bignumMul(inout float a[16], inout float b[16], inout float c[16]) {
         float row[16];
 		for (int j = 0; j < 16; j++) {
             float inter = a[i] * b[j];
-			float tmp[16];
-			tmp[0] = mod(inter, 256.0);
-            tmp[1] = floor(inter / 256.0);
-			lshiftWord(tmp, float(i+j));
-			if (i+j < 16) {
-				bignumAdd(tmp, row, row);
-			}
+			float t1[16];
+			t1[0] = mod(inter, 256.0);
+            t1[1] = floor(inter / 256.0);
+			lshiftWord(t1, float(i+j));
+            float t2[16];
+            bignumAdd(t1, row, t2);
+            bignumAssignIfTrue(row, t2, i+j < 16);
 		}
 		bignumAdd(c, row, c);
 	}
@@ -198,34 +211,36 @@ void bignumDiv(inout float a[16], inout float b[16], inout float c[16]) {
     bignumInit(c);
     float current[16];
     float denom[16];
-    float tmp[16];
+    float t1[16];
     current[0] = 1.0;
     bignumAssign(denom, b);
-	bignumAssign(tmp, a);
+	bignumAssign(t1, a);
     float overflow = 0.0;
     for (int i = 0; i < 128; i++) {
-        if (bignumCmp(denom, a) < 1.0) {
-            overflow += floatEquals(overflow, 0.0) 
-                      * floatGreaterThanOrEqual(denom[15], 1.0+floor(255.0/2.0));
-            if (overflow == 0.0) {
-                lshiftOneBit(current);
-                lshiftOneBit(denom);
-            }
-		}
+        if (bignumCmp(denom, a) == 1.0) {
+            break;
+        }
+        if (denom[15] >= 1.0+floor(255.0/2.0)) {
+            overflow = 1.0;
+            break;
+        }
+        lshiftOneBit(current);
+        lshiftOneBit(denom);
     }
     if (overflow == 0.0) {
         rshiftOneBit(denom);
         rshiftOneBit(current);
     }
     for (int i = 0; i < 128; i++) {
-        if (bignumIsZero(current) == 0.0) {
-            if (bignumCmp(tmp, denom) > -1.0) {
-                bignumSub(tmp, denom, tmp);
-                bignumOr(c, current, c);
-            }
-            rshiftOneBit(current);
-            rshiftOneBit(denom);
+        if (bignumIsZero(current) == 1.0) { 
+            break;
         }
+        if (bignumCmp(t1, denom) > -1.0) {
+            bignumSub(t1, denom, t1);
+            bignumOr(c, current, c);
+        }
+        rshiftOneBit(current);
+        rshiftOneBit(denom);
     }
 }
 
@@ -381,8 +396,7 @@ void bignumIsqrt(inout float a[16], inout float b[16]) {
     bignumAssign(b, low);
 }
 
-void main(void)
-{
+void main(void) {
     // get self
     vec4 self = texture2D(Data, gl_FragCoord.xy / Width);
     float i = floor(gl_FragCoord.x) + floor(gl_FragCoord.y) * Width; 
@@ -392,12 +406,12 @@ void main(void)
 
     float compare;
 
-    if ( (j < Pass_mod_Stage) || (j > TwoStage_PmS_1) ) {
+    if ((j < Pass_mod_Stage) || (j > TwoStage_PmS_1)) {
         // must copy -> compare with self
         compare = 0.0;
     } else {
         // must sort
-        if ( mod((j+Pass_mod_Stage) / Pass,2.0) < 1.0) {
+        if (mod((j+Pass_mod_Stage)/Pass, 2.0) < 1.0) {
             // we are on the left side -> compare with partner on the right
             compare = 1.0;
         } else {
@@ -412,5 +426,5 @@ void main(void)
     vec4 partner = texture2D(Data, partnerCoord.xy / Width);
 
     // on the left its a < operation, on the right its a >= operation
-    gl_FragColor = (self.a * compare < partner.a * compare) ? self : partner;
+    gl_FragColor = (self.a * compare <= partner.a * compare) ? self : partner;
 }
