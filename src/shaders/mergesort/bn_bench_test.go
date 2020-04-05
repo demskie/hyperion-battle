@@ -49,7 +49,7 @@ func BenchmarkBigNumMultiplyComplex(b *testing.B) {
 	}
 }
 
-func BenchmarkBigNumDiv123(b *testing.B) {
+func BenchmarkBigNumDivide123(b *testing.B) {
 	n1, n2, n3 := &bn{}, &bn{}, &bn{}
 	bignumFromUint64(n1, 123456789)
 	bignumFromUint64(n2, 123)
@@ -58,7 +58,7 @@ func BenchmarkBigNumDiv123(b *testing.B) {
 	}
 }
 
-func BenchmarkBigNumDiv4096(b *testing.B) {
+func BenchmarkBigNumDivide4096(b *testing.B) {
 	n1, n2, n3 := &bn{}, &bn{}, &bn{}
 	bignumFromUint64(n1, 123456789)
 	bignumFromUint64(n2, 4096)
@@ -67,7 +67,7 @@ func BenchmarkBigNumDiv4096(b *testing.B) {
 	}
 }
 
-func BenchmarkBigNumDivComplex(b *testing.B) {
+func BenchmarkBigNumDivideComplex(b *testing.B) {
 	n1, n2, n3 := &bn{}, &bn{}, &bn{}
 	bignumFromUint64(n1, 123456789123456789)
 	bignumFromUint64(n2, 123456789)
@@ -76,7 +76,7 @@ func BenchmarkBigNumDivComplex(b *testing.B) {
 	}
 }
 
-func BenchmarkBigNumPowComplex(b *testing.B) {
+func BenchmarkBigNumPowerComplex(b *testing.B) {
 	n1, n2, n3 := &bn{}, &bn{}, &bn{}
 	bignumFromUint64(n1, 2)
 	bignumFromUint64(n2, 30)

@@ -126,13 +126,13 @@ func bignumMul(a, b, c *bn) {
 			bStop = i
 		}
 	}
-	t0 := &bn{}
-	bignumAssignIfTrue(t0, a, aStop < bStop)
-	bignumAssignIfTrue(a, b, aStop < bStop)
-	bignumAssignIfTrue(b, t0, aStop < bStop)
-	stop := aStop
-	if aStop > bStop {
-		stop = bStop
+	t1 := &bn{}
+	for i := 0; i < bnArraySize; i++ {
+		if aStop < bStop {
+			t1[i] = a[i]
+			a[i] = b[i]
+			b[i] = t1[i]
+		}
 	}
 	isPowerOfTwo := false
 	for i := 1; i < 128; i *= 2 {
@@ -140,21 +140,33 @@ func bignumMul(a, b, c *bn) {
 			isPowerOfTwo = true
 		}
 	}
-	if stop == 0 {
+	if aStop == 0 || bStop == 0 {
 		carry := 0
 		for i := 0; i < bnArraySize; i++ {
 			v := int(a[i])*int(b[0]) + carry
 			carry = v / 256
 			c[i] = uint8(v % 256)
 		}
-	} else if stop == 1 && b[0] == 0 && isPowerOfTwo {
+	} else if (aStop == 1 || bStop == 1) && b[0] == 0 && isPowerOfTwo {
 		bAlt := &bn{}
 		bAlt[0] = 128
-		bignumMul(a, bAlt, c)
+		carry := 0
+		for i := 0; i < bnArraySize; i++ {
+			v := int(a[i])*int(bAlt[0]) + carry
+			carry = v / 256
+			c[i] = uint8(v % 256)
+		}
 		aAlt := &bn{}
-		bignumAssign(aAlt, c)
+		for i := 0; i < bnArraySize; i++ {
+			aAlt[i] = c[i]
+		}
 		bAlt[0] = b[1] * 2
-		bignumMul(aAlt, bAlt, c)
+		carry = 0
+		for i := 0; i < bnArraySize; i++ {
+			v := int(aAlt[i])*int(bAlt[0]) + carry
+			carry = v / 256
+			c[i] = uint8(v % 256)
+		}
 	} else {
 		for i := 0; i < bnArraySize; i++ {
 			c[i] = 0
@@ -162,19 +174,50 @@ func bignumMul(a, b, c *bn) {
 		for i := 0; i < bnArraySize; i++ {
 			row := &bn{}
 			for j := 0; j < bnArraySize; j++ {
-				t1 := &bn{}
-				inter := uint16(a[i]) * uint16(b[j])
-				t1[0] = uint8(inter % 256)
-				t1[1] = uint8(inter / 256)
-				lshiftWord(t1, i+j)
+				v := uint16(a[i]) * uint16(b[j])
+				t1[0] = uint8(v % 256)
+				t1[1] = uint8(v / 256)
+				for k := 2; k < bnArraySize; k++ {
+					t1[k] = 0
+				}
+				words := i + j
+				for k := bnArraySize - 1; k >= 0; k-- {
+					if k-words >= 0 {
+						t1[k] = t1[k-words]
+					} else {
+						t1[k] = 0
+					}
+				}
 				t2 := &bn{}
-				bignumAdd(t1, row, t2)
-				bignumAssignIfTrue(row, t2, i+j < bnArraySize)
-				if j >= stop {
+				carry := 0
+				for k := 0; k < bnArraySize; k++ {
+					v := int(t1[k]) + int(row[k]) + carry
+					if v > 255 {
+						carry = 1
+					} else {
+						carry = 0
+					}
+					t2[k] = uint8(v % 256)
+				}
+				for k := 0; k < bnArraySize; k++ {
+					if i+j < bnArraySize {
+						row[k] = t2[k]
+					}
+				}
+				if j >= aStop || j >= bStop {
 					break
 				}
 			}
-			bignumAdd(c, row, c)
+			carry := 0
+			for i := 0; i < bnArraySize; i++ {
+				v := int(c[i]) + int(row[i]) + carry
+				if v > 255 {
+					carry = 1
+				} else {
+					carry = 0
+				}
+				c[i] = uint8(v % 256)
+			}
 		}
 	}
 }
