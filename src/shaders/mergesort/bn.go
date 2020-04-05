@@ -11,9 +11,6 @@ type bn [bnArraySize]byte
 
 const bnArraySize = 128
 
-const minVal = 0
-const maxVal = 255
-
 func bignumInit(a *bn) {
 	for i := 0; i < bnArraySize; i++ {
 		a[i] = 0
@@ -246,11 +243,25 @@ func bignumDiv(a, b, c *bn) {
 	} else if stop == 1 && b[0] == 0 && isPowerOfTwo {
 		bAlt := &bn{}
 		bAlt[0] = 128
-		bignumDiv(a, bAlt, c)
+		rem := 0
+		for i := bnArraySize - 1; i >= 0; i-- {
+			ent := int(a[i]) + rem*256
+			quot := ent / int(bAlt[0])
+			c[i] = uint8(quot)
+			rem = ent % int(bAlt[0])
+		}
 		aAlt := &bn{}
-		bignumAssign(aAlt, c)
+		for i := 0; i < bnArraySize; i++ {
+			aAlt[i] = c[i]
+		}
 		bAlt[0] = b[1] * 2
-		bignumDiv(aAlt, bAlt, c)
+		rem = 0
+		for i := bnArraySize - 1; i >= 0; i-- {
+			ent := int(aAlt[i]) + rem*256
+			quot := ent / int(bAlt[0])
+			c[i] = uint8(quot)
+			rem = ent % int(bAlt[0])
+		}
 	} else {
 		for i := 0; i < bnArraySize; i++ {
 			c[i] = 0
@@ -261,40 +272,233 @@ func bignumDiv(a, b, c *bn) {
 		t2 := &bn{}
 		t3 := &bn{}
 		current[0] = 1
-		bignumAssign(denom, b)
-		bignumAssign(t1, a)
-		overflow := false
-		for i := 0; i < 8*bnArraySize; i++ {
-			if bignumCmp(denom, a) == 1 {
-				break
-			}
-			if denom[bnArraySize-1] >= uint8(1+maxVal/2) {
-				overflow = true
-				break
-			}
-			lshiftOneBit(current)
-			lshiftOneBit(denom)
+		for i := 0; i < bnArraySize; i++ {
+			denom[i] = b[i]
 		}
-		shouldRShift := overflow == false
-		bignumAssign(t2, current)
-		bignumAssign(t3, denom)
-		rshiftOneBit(current)
-		rshiftOneBit(denom)
-		bignumAssignIfTrue(current, t2, shouldRShift)
-		bignumAssignIfTrue(denom, t3, shouldRShift)
+		for i := 0; i < bnArraySize; i++ {
+			t1[i] = a[i]
+		}
+		hasOverflowed := false
 		for i := 0; i < 8*bnArraySize; i++ {
-			if bignumIsZero(current) {
+			cmp := 0
+			for j := bnArraySize - 1; j >= 0; j-- {
+				if cmp == 0 && denom[j] > a[j] {
+					cmp = 1
+				}
+				if cmp == 0 && denom[j] < a[j] {
+					cmp = -1
+				}
+			}
+			if cmp == 1 {
 				break
 			}
-			shouldSubOr := bignumCmp(t1, denom) != -1
-			bignumAssign(t2, t1)
-			bignumAssign(t3, c)
-			bignumSub(t2, denom, t2)
-			bignumOr(t3, current, t3)
-			bignumAssignIfTrue(t1, t2, shouldSubOr)
-			bignumAssignIfTrue(c, t3, shouldSubOr)
-			rshiftOneBit(current)
-			rshiftOneBit(denom)
+			if denom[bnArraySize-1] >= uint8(256/2) {
+				hasOverflowed = true
+				break
+			}
+			for i := bnArraySize - 1; i > 0; i-- {
+				v1 := current[i] * uint8(math.Pow(2, 1))
+				v2 := current[i-1] / uint8(math.Pow(2, 7))
+				o := uint8(0)
+				x := uint8(128)
+				for i := 0; i < 8; i++ {
+					if (v1 >= x) != (v2 >= x) {
+						o += x
+					}
+					if v1 >= x {
+						v1 -= x
+					}
+					if v2 >= x {
+						v2 -= x
+					}
+					x /= 2
+				}
+				current[i] = o
+			}
+			current[0] = current[0] * uint8(math.Pow(2, 1))
+			for i := bnArraySize - 1; i > 0; i-- {
+				v1 := denom[i] * uint8(math.Pow(2, 1))
+				v2 := denom[i-1] / uint8(math.Pow(2, 7))
+				o := uint8(0)
+				x := uint8(128)
+				for i := 0; i < 8; i++ {
+					if (v1 >= x) != (v2 >= x) {
+						o += x
+					}
+					if v1 >= x {
+						v1 -= x
+					}
+					if v2 >= x {
+						v2 -= x
+					}
+					x /= 2
+				}
+				denom[i] = o
+			}
+			denom[0] = denom[0] * uint8(math.Pow(2, 1))
+		}
+		for i := 0; i < bnArraySize; i++ {
+			t2[i] = current[i]
+		}
+		for i := 0; i < bnArraySize; i++ {
+			t3[i] = denom[i]
+		}
+		for i := 0; i < bnArraySize-1; i++ {
+			v1 := current[i] / uint8(math.Pow(2, 1))
+			v2 := current[i+1] * uint8(math.Pow(2, 7))
+			o := uint8(0)
+			x := uint8(128)
+			for i := 0; i < 8; i++ {
+				if (v1 >= x) != (v2 >= x) {
+					o += x
+				}
+				if v1 >= x {
+					v1 -= x
+				}
+				if v2 >= x {
+					v2 -= x
+				}
+				x /= 2
+			}
+			current[i] = o
+		}
+		current[bnArraySize-1] = current[bnArraySize-1] / uint8(math.Pow(2, 1))
+		for i := 0; i < bnArraySize-1; i++ {
+			v1 := denom[i] / uint8(math.Pow(2, 1))
+			v2 := denom[i+1] * uint8(math.Pow(2, 7))
+			o := uint8(0)
+			x := uint8(128)
+			for i := 0; i < 8; i++ {
+				if (v1 >= x) != (v2 >= x) {
+					o += x
+				}
+				if v1 >= x {
+					v1 -= x
+				}
+				if v2 >= x {
+					v2 -= x
+				}
+				x /= 2
+			}
+			denom[i] = o
+		}
+		denom[bnArraySize-1] = denom[bnArraySize-1] / uint8(math.Pow(2, 1))
+		for i := 0; i < bnArraySize; i++ {
+			if hasOverflowed == false {
+				current[i] = t2[i]
+			}
+		}
+		for i := 0; i < bnArraySize; i++ {
+			if hasOverflowed == false {
+				denom[i] = t3[i]
+			}
+		}
+		for i := 0; i < 8*bnArraySize; i++ {
+			currentIsZero := true
+			for j := 0; j < bnArraySize; j++ {
+				if current[j] > 0 {
+					currentIsZero = false
+				}
+			}
+			if currentIsZero {
+				break
+			}
+			cmp := 0
+			for j := bnArraySize - 1; j >= 0; j-- {
+				if cmp == 0 && t1[j] > denom[j] {
+					cmp = 1
+				}
+				if cmp == 0 && t1[j] < denom[j] {
+					cmp = -1
+				}
+			}
+			for j := 0; j < bnArraySize; j++ {
+				t2[j] = t1[j]
+			}
+			for j := 0; j < bnArraySize; j++ {
+				t3[j] = c[j]
+			}
+			borrow := 0
+			for j := 0; j < bnArraySize; j++ {
+				v1 := int(t2[j]) + 256
+				v2 := int(denom[j]) + borrow
+				v3 := v1 - v2
+				if v3 <= 255 {
+					borrow = 1
+				} else {
+					borrow = 0
+				}
+				t2[j] = uint8(v3 % 256)
+			}
+			for j := 0; j < bnArraySize; j++ {
+				v1 := t3[j]
+				v2 := current[j]
+				o := uint8(0)
+				x := uint8(128)
+				for k := 0; k < 8; k++ {
+					if v1 >= x || v2 >= x {
+						o += x
+					}
+					if v1 >= x {
+						v1 -= x
+					}
+					if v2 >= x {
+						v2 -= x
+					}
+					x /= 2
+				}
+				t3[j] = o
+			}
+			for j := 0; j < bnArraySize; j++ {
+				if cmp > -1 {
+					t1[j] = t2[j]
+				}
+			}
+			for j := 0; j < bnArraySize; j++ {
+				if cmp > -1 {
+					c[j] = t3[j]
+				}
+			}
+			for j := 0; j < bnArraySize-1; j++ {
+				v1 := current[j] / uint8(math.Pow(2, 1))
+				v2 := current[j+1] * uint8(math.Pow(2, 7))
+				o := uint8(0)
+				x := uint8(128)
+				for k := 0; k < 8; k++ {
+					if (v1 >= x) != (v2 >= x) {
+						o += x
+					}
+					if v1 >= x {
+						v1 -= x
+					}
+					if v2 >= x {
+						v2 -= x
+					}
+					x /= 2
+				}
+				current[j] = o
+			}
+			current[bnArraySize-1] = current[bnArraySize-1] / uint8(math.Pow(2, 1))
+			for j := 0; j < bnArraySize-1; j++ {
+				v1 := denom[j] / uint8(math.Pow(2, 1))
+				v2 := denom[j+1] * uint8(math.Pow(2, 7))
+				o := uint8(0)
+				x := uint8(128)
+				for k := 0; k < 8; k++ {
+					if (v1 >= x) != (v2 >= x) {
+						o += x
+					}
+					if v1 >= x {
+						v1 -= x
+					}
+					if v2 >= x {
+						v2 -= x
+					}
+					x /= 2
+				}
+				denom[j] = o
+			}
+			denom[bnArraySize-1] = denom[bnArraySize-1] / uint8(math.Pow(2, 1))
 		}
 	}
 }
@@ -340,13 +544,45 @@ func bignumAnd(a, b, c *bn) {
 
 func bignumOr(a, b, c *bn) {
 	for i := 0; i < bnArraySize; i++ {
-		c[i] = orByte(a[i], b[i])
+		v1 := a[i]
+		v2 := b[i]
+		o := uint8(0)
+		x := uint8(128)
+		for j := 0; j < 8; j++ {
+			if v1 >= x || v2 >= x {
+				o += x
+			}
+			if v1 >= x {
+				v1 -= x
+			}
+			if v2 >= x {
+				v2 -= x
+			}
+			x /= 2
+		}
+		c[i] = o
 	}
 }
 
 func bignumXor(a, b, c *bn) {
 	for i := 0; i < bnArraySize; i++ {
-		c[i] = xorByte(a[i], b[i])
+		v1 := a[i]
+		v2 := b[i]
+		o := uint8(0)
+		x := uint8(128)
+		for j := 0; j < 8; j++ {
+			if (v1 >= x) != (v2 >= x) {
+				o += x
+			}
+			if v1 >= x {
+				v1 -= x
+			}
+			if v2 >= x {
+				v2 -= x
+			}
+			x /= 2
+		}
+		c[i] = o
 	}
 }
 
@@ -472,16 +708,48 @@ func lshiftWord(a *bn, nwords int) {
 
 func lshiftOneBit(a *bn) {
 	for i := bnArraySize - 1; i > 0; i-- {
-		a[i] = xorByte(lshiftByte(a[i], 1), rshiftByte(a[i-1], 8-1))
+		v1 := a[i] * uint8(math.Pow(2, 1))
+		v2 := a[i-1] / uint8(math.Pow(2, 7))
+		o := uint8(0)
+		x := uint8(128)
+		for i := 0; i < 8; i++ {
+			if (v1 >= x) != (v2 >= x) {
+				o += x
+			}
+			if v1 >= x {
+				v1 -= x
+			}
+			if v2 >= x {
+				v2 -= x
+			}
+			x /= 2
+		}
+		a[i] = o
 	}
-	a[0] = lshiftByte(a[0], 1)
+	a[0] = a[0] * uint8(math.Pow(2, 1))
 }
 
 func rshiftOneBit(a *bn) {
 	for i := 0; i < bnArraySize-1; i++ {
-		a[i] = xorByte(rshiftByte(a[i], 1), lshiftByte(a[i+1], 8-1))
+		v1 := a[i] / uint8(math.Pow(2, 1))
+		v2 := a[i+1] * uint8(math.Pow(2, 7))
+		o := uint8(0)
+		x := uint8(128)
+		for i := 0; i < 8; i++ {
+			if (v1 >= x) != (v2 >= x) {
+				o += x
+			}
+			if v1 >= x {
+				v1 -= x
+			}
+			if v2 >= x {
+				v2 -= x
+			}
+			x /= 2
+		}
+		a[i] = o
 	}
-	a[bnArraySize-1] = rshiftByte(a[bnArraySize-1], 1)
+	a[bnArraySize-1] = a[bnArraySize-1] / uint8(math.Pow(2, 1))
 }
 
 func lshiftByte(i, m uint8) uint8 {
@@ -494,7 +762,8 @@ func rshiftByte(i, m uint8) uint8 {
 
 func andByte(a, b uint8) uint8 {
 	o := uint8(0)
-	for _, x := range []uint8{128, 64, 32, 16, 8, 4, 2, 1} {
+	x := uint8(128)
+	for i := 0; i < 8; i++ {
 		if a >= x && b >= x {
 			o += x
 		}
@@ -504,13 +773,15 @@ func andByte(a, b uint8) uint8 {
 		if b >= x {
 			b -= x
 		}
+		x /= 2
 	}
 	return o
 }
 
 func orByte(a, b uint8) uint8 {
 	o := uint8(0)
-	for _, x := range []uint8{128, 64, 32, 16, 8, 4, 2, 1} {
+	x := uint8(128)
+	for i := 0; i < 8; i++ {
 		if a >= x || b >= x {
 			o += x
 		}
@@ -520,13 +791,15 @@ func orByte(a, b uint8) uint8 {
 		if b >= x {
 			b -= x
 		}
+		x /= 2
 	}
 	return o
 }
 
 func xorByte(a, b uint8) uint8 {
 	o := uint8(0)
-	for _, x := range []uint8{128, 64, 32, 16, 8, 4, 2, 1} {
+	x := uint8(128)
+	for i := 0; i < 8; i++ {
 		if (a >= x) != (b >= x) {
 			o += x
 		}
@@ -536,6 +809,7 @@ func xorByte(a, b uint8) uint8 {
 		if b >= x {
 			b -= x
 		}
+		x /= 2
 	}
 	return o
 }
