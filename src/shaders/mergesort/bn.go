@@ -116,117 +116,143 @@ func bignumSub(a, b, c *bn) {
 }
 
 func bignumMul(a, b, c *bn) {
-	for i := 0; i < bnArraySize; i++ {
-		c[i] = 0
-	}
-	for i := 0; i < bnArraySize; i++ {
-		row := &bn{}
-		for j := 0; j < bnArraySize; j++ {
-			t1 := &bn{}
-			inter := uint16(a[i]) * uint16(b[j])
-			t1[0] = uint8(inter % 256)
-			t1[1] = uint8(inter / 256)
-			lshiftWord(t1, i+j)
-			t2 := &bn{}
-			bignumAdd(t1, row, t2)
-			bignumAssignIfTrue(row, t2, i+j < bnArraySize)
+	aStop := 0
+	bStop := 0
+	for i := bnArraySize - 1; i > 0; i-- {
+		if aStop == 0 && a[i] > 0 {
+			aStop = i
 		}
-		bignumAdd(c, row, c)
-	}
-}
-
-func bignumMulSmall(a *bn, f int, c *bn) {
-	for i := 0; i < bnArraySize; i++ {
-		c[i] = 0
-	}
-	b := &bn{}
-	b[0] = uint8(f % 256)
-	b[1] = uint8(f / 256)
-	for i := 0; i < bnArraySize; i++ {
-		row := &bn{}
-		for j := 0; j < 2; j++ {
-			t1 := &bn{}
-			inter := uint16(a[i]) * uint16(b[j])
-			t1[0] = uint8(inter % 256)
-			t1[1] = uint8(inter / 256)
-			lshiftWord(t1, i+j)
-			t2 := &bn{}
-			bignumAdd(t1, row, t2)
-			bignumAssignIfTrue(row, t2, i+j < bnArraySize)
+		if bStop == 0 && b[i] > 0 {
+			bStop = i
 		}
-		bignumAdd(c, row, c)
 	}
-}
-
-func bignumMulSimple(a *bn, b int, c *bn) {
-	for i := 0; i < bnArraySize; i++ {
-		c[i] = 0
+	t0 := &bn{}
+	bignumAssignIfTrue(t0, a, aStop < bStop)
+	bignumAssignIfTrue(a, b, aStop < bStop)
+	bignumAssignIfTrue(b, t0, aStop < bStop)
+	stop := aStop
+	if aStop > bStop {
+		stop = bStop
 	}
-	carry := 0
-	for i := 0; i < bnArraySize; i++ {
-		v := int(a[i])*b + carry
-		carry = v / 256
-		c[i] = uint8(v % 256)
+	isPowerOfTwo := false
+	for i := 1; i < 128; i *= 2 {
+		if i == int(b[1]) {
+			isPowerOfTwo = true
+		}
+	}
+	if stop == 0 {
+		carry := 0
+		for i := 0; i < bnArraySize; i++ {
+			v := int(a[i])*int(b[0]) + carry
+			carry = v / 256
+			c[i] = uint8(v % 256)
+		}
+	} else if stop == 1 && b[0] == 0 && isPowerOfTwo {
+		bAlt := &bn{}
+		bAlt[0] = 128
+		bignumMul(a, bAlt, c)
+		aAlt := &bn{}
+		bignumAssign(aAlt, c)
+		bAlt[0] = b[1] * 2
+		bignumMul(aAlt, bAlt, c)
+	} else {
+		for i := 0; i < bnArraySize; i++ {
+			c[i] = 0
+		}
+		for i := 0; i < bnArraySize; i++ {
+			row := &bn{}
+			for j := 0; j < bnArraySize; j++ {
+				t1 := &bn{}
+				inter := uint16(a[i]) * uint16(b[j])
+				t1[0] = uint8(inter % 256)
+				t1[1] = uint8(inter / 256)
+				lshiftWord(t1, i+j)
+				t2 := &bn{}
+				bignumAdd(t1, row, t2)
+				bignumAssignIfTrue(row, t2, i+j < bnArraySize)
+				if j >= stop {
+					break
+				}
+			}
+			bignumAdd(c, row, c)
+		}
 	}
 }
 
 func bignumDiv(a, b, c *bn) {
-	for i := 0; i < bnArraySize; i++ {
-		c[i] = 0
+	stop := 0
+	for i := bnArraySize - 1; i > 0; i-- {
+		if stop == 0 && b[i] > 0 {
+			stop = i
+		}
 	}
-	current := &bn{}
-	denom := &bn{}
-	t1 := &bn{}
-	t2 := &bn{}
-	t3 := &bn{}
-	bignumFromUint16(current, 1)
-	bignumAssign(denom, b)
-	bignumAssign(t1, a)
-	overflow := false
-	for i := 0; i < 8*bnArraySize; i++ {
-		if bignumCmp(denom, a) == 1 {
-			break
+	isPowerOfTwo := false
+	for i := 1; i < 128; i *= 2 {
+		if i == int(b[1]) {
+			isPowerOfTwo = true
 		}
-		if denom[bnArraySize-1] >= uint8(1+maxVal/2) {
-			overflow = true
-			break
-		}
-		lshiftOneBit(current)
-		lshiftOneBit(denom)
 	}
-	shouldRShift := overflow == false
-	bignumAssign(t2, current)
-	bignumAssign(t3, denom)
-	rshiftOneBit(current)
-	rshiftOneBit(denom)
-	bignumAssignIfTrue(current, t2, shouldRShift)
-	bignumAssignIfTrue(denom, t3, shouldRShift)
-	for i := 0; i < 8*bnArraySize; i++ {
-		if bignumIsZero(current) {
-			break
+	if stop == 0 {
+		rem := 0
+		for i := bnArraySize - 1; i >= 0; i-- {
+			ent := int(a[i]) + rem*256
+			quot := ent / int(b[0])
+			c[i] = uint8(quot)
+			rem = ent % int(b[0])
 		}
-		shouldSubOr := bignumCmp(t1, denom) != -1
-		bignumAssign(t2, t1)
-		bignumAssign(t3, c)
-		bignumSub(t2, denom, t2)
-		bignumOr(t3, current, t3)
-		bignumAssignIfTrue(t1, t2, shouldSubOr)
-		bignumAssignIfTrue(c, t3, shouldSubOr)
+	} else if stop == 1 && b[0] == 0 && isPowerOfTwo {
+		bAlt := &bn{}
+		bAlt[0] = 128
+		bignumDiv(a, bAlt, c)
+		aAlt := &bn{}
+		bignumAssign(aAlt, c)
+		bAlt[0] = b[1] * 2
+		bignumDiv(aAlt, bAlt, c)
+	} else {
+		for i := 0; i < bnArraySize; i++ {
+			c[i] = 0
+		}
+		current := &bn{}
+		denom := &bn{}
+		t1 := &bn{}
+		t2 := &bn{}
+		t3 := &bn{}
+		current[0] = 1
+		bignumAssign(denom, b)
+		bignumAssign(t1, a)
+		overflow := false
+		for i := 0; i < 8*bnArraySize; i++ {
+			if bignumCmp(denom, a) == 1 {
+				break
+			}
+			if denom[bnArraySize-1] >= uint8(1+maxVal/2) {
+				overflow = true
+				break
+			}
+			lshiftOneBit(current)
+			lshiftOneBit(denom)
+		}
+		shouldRShift := overflow == false
+		bignumAssign(t2, current)
+		bignumAssign(t3, denom)
 		rshiftOneBit(current)
 		rshiftOneBit(denom)
-	}
-}
-
-func bignumDivSimple(a *bn, b int, c *bn) {
-	for i := 0; i < bnArraySize; i++ {
-		c[i] = 0
-	}
-	rem := 0
-	for i := bnArraySize - 1; i >= 0; i-- {
-		ent := int(a[i]) + rem*256
-		quot := ent / b
-		c[i] = uint8(quot)
-		rem = ent % b
+		bignumAssignIfTrue(current, t2, shouldRShift)
+		bignumAssignIfTrue(denom, t3, shouldRShift)
+		for i := 0; i < 8*bnArraySize; i++ {
+			if bignumIsZero(current) {
+				break
+			}
+			shouldSubOr := bignumCmp(t1, denom) != -1
+			bignumAssign(t2, t1)
+			bignumAssign(t3, c)
+			bignumSub(t2, denom, t2)
+			bignumOr(t3, current, t3)
+			bignumAssignIfTrue(t1, t2, shouldSubOr)
+			bignumAssignIfTrue(c, t3, shouldSubOr)
+			rshiftOneBit(current)
+			rshiftOneBit(denom)
+		}
 	}
 }
 
@@ -260,13 +286,6 @@ func bignumMod(a, b, c *bn) {
 	t1 := &bn{}
 	bignumDiv(a, b, c)
 	bignumMul(c, b, t1)
-	bignumSub(a, t1, c)
-}
-
-func bignumModSimple(a *bn, b int, c *bn) {
-	t1 := &bn{}
-	bignumDivSimple(a, b, c)
-	bignumMulSimple(c, b, t1)
 	bignumSub(a, t1, c)
 }
 
@@ -309,14 +328,28 @@ func bignumIsZero(n *bn) bool {
 }
 
 func bignumPow(a, b, c *bn) {
-	isZero := bignumIsZero(b)
+	bIsZero := true
+	for i := 0; i < bnArraySize; i++ {
+		if b[i] > 0 {
+			bIsZero = false
+		}
+	}
 	t1 := &bn{}
 	t2 := &bn{}
 	bignumAssign(t1, a)
 	bignumAssign(t2, b)
 	bignumDec(t2)
 	for i := 0; i < 8*bnArraySize; i++ {
-		if isZero || bignumIsZero(t2) {
+		if bIsZero {
+			break
+		}
+		t2IsZero := true
+		for i := 0; i < bnArraySize; i++ {
+			if t2[i] > 0 {
+				t2IsZero = false
+			}
+		}
+		if t2IsZero {
 			break
 		}
 		bignumMul(t1, a, c)
@@ -326,7 +359,7 @@ func bignumPow(a, b, c *bn) {
 	bignumAssign(c, t1)
 	bignumInit(t1)
 	t1[0] = 1
-	bignumAssignIfTrue(c, t1, isZero)
+	bignumAssignIfTrue(c, t1, bIsZero)
 }
 
 func bignumSqrt(a, b *bn) {
@@ -334,7 +367,6 @@ func bignumSqrt(a, b *bn) {
 	high := &bn{}
 	mid := &bn{}
 	tmp := &bn{}
-	bignumInit(low)
 	bignumAssign(high, a)
 	bignumRshift(high, mid, 1)
 	bignumInc(mid)
