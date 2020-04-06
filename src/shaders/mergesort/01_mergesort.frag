@@ -192,21 +192,31 @@ void bignumSub(inout float a[16], inout float b[16], inout float c[16]) {
 
 #define BIGNUMMUL
 void bignumMul(inout float a[16], inout float b[16], inout float c[16]) {
-    bignumInit(c);
-	for (int i = 0; i < 16; i++) {
-        float row[16];
-		for (int j = 0; j < 16; j++) {
-            float inter = a[i] * b[j];
-			float t1[16];
-			t1[0] = mod(inter, 256.0);
-            t1[1] = floor(inter / 256.0);
-			lshiftWord(t1, float(i+j));
-            float t2[16];
-            bignumAdd(t1, row, t2);
-            bignumAssignIfTrue(row, t2, i+j < 16);
-		}
-		bignumAdd(c, row, c);
-	}
+    float aStop, bStop;
+    for (int i = 16 - 1; i > 0; i--) {
+        aStop += floatEquals(aStop, 0.0) * floatGreaterThan(a[i], 0.0) * float(i);
+        bStop += floatEquals(bStop, 0.0) * floatGreaterThan(b[i], 0.0) * float(i);
+    }
+    float t1[16];
+    bignumAssign(t1, a);
+    bignumAssignIfTrue(a, b, aStop < bStop);
+    bignumAssignIfTrue(b, t1, aStop < bStop);
+    float isPowerOfTwo;
+    for (float f = 1.0; f <= 64.0; f *= 2.0) {
+        isPowerOfTwo += floatEquals(isPowerOfTwo, 0.0) * floatEquals(f, b[1]);
+    }
+    if (aStop == 0.0 && bStop == 0.0) {
+        float carry;
+        for (int i = 0; i < 16; i++) {
+            float v = a[i] * b[0] + carry;
+            carry = v / 256.0;
+            c[i] = mod(v, 256.0);
+        }
+    } else if ((aStop == 1.0 || bStop == 1.0) && b[0] == 0.0 && isPowerOfTwo == 1.0) {
+
+    } else {
+
+    }
 }
 
 #define BIGNUMDIV
@@ -247,7 +257,6 @@ void bignumDiv(inout float a[16], inout float b[16], inout float c[16]) {
     }
 }
 
-#define BIGNUMLSHIFT
 void bignumLshift(inout float a[16], inout float b[16], float nbits) {
     nbits = max(floor(nbits), 0.0);
     bignumAssign(b, a);
@@ -261,7 +270,6 @@ void bignumLshift(inout float a[16], inout float b[16], float nbits) {
     }
 }
 
-#define BIGNUMRSHIFT
 void bignumRshift(inout float a[16], inout float b[16], float nbits) {
     nbits = max(floor(nbits), 0.0);
     bignumAssign(b, a);

@@ -51,6 +51,14 @@ func bignumToString(in *bn) string {
 	return n.String()
 }
 
+func bignumToBytes(in *bn) []uint8 {
+	bytes := []uint8{}
+	for i := 0; i < bnArraySize; i++ {
+		bytes = append(bytes, in[i])
+	}
+	return bytes
+}
+
 func bignumFromString(s string) *bn {
 	c := &bn{}
 	bytes, _ := hex.DecodeString(s)
@@ -131,10 +139,18 @@ func bignumMul(a, b, c *bn) {
 			b[i] = t1[i]
 		}
 	}
-	isPowerOfTwo := false
-	for i := 1; i < 128; i *= 2 {
-		if i == int(b[1]) {
-			isPowerOfTwo = true
+	nonEmptyBytes := 0
+	powerOfTwoBit := 0
+	for i := 0; i < bnArraySize; i++ {
+		if b[i] > 0 {
+			nonEmptyBytes++
+		}
+		pwr := 1
+		for j := 0; j < 8; j++ {
+			if int(b[i]) == pwr {
+				powerOfTwoBit = i*8 + j
+			}
+			pwr *= 2
 		}
 	}
 	if aStop == 0 || bStop == 0 {
@@ -144,26 +160,8 @@ func bignumMul(a, b, c *bn) {
 			carry = v / 256
 			c[i] = uint8(v % 256)
 		}
-	} else if (aStop == 1 || bStop == 1) && b[0] == 0 && isPowerOfTwo {
-		bAlt := &bn{}
-		bAlt[0] = 128
-		carry := 0
-		for i := 0; i < bnArraySize; i++ {
-			v := int(a[i])*int(bAlt[0]) + carry
-			carry = v / 256
-			c[i] = uint8(v % 256)
-		}
-		aAlt := &bn{}
-		for i := 0; i < bnArraySize; i++ {
-			aAlt[i] = c[i]
-		}
-		bAlt[0] = b[1] * 2
-		carry = 0
-		for i := 0; i < bnArraySize; i++ {
-			v := int(aAlt[i])*int(bAlt[0]) + carry
-			carry = v / 256
-			c[i] = uint8(v % 256)
-		}
+	} else if nonEmptyBytes == 1 && powerOfTwoBit > 7 {
+		bignumLshift(a, c, powerOfTwoBit)
 	} else {
 		for i := 0; i < bnArraySize; i++ {
 			c[i] = 0
@@ -204,10 +202,18 @@ func bignumDiv(a, b, c *bn) {
 			stop = i
 		}
 	}
-	isPowerOfTwo := false
-	for i := 1; i < 128; i *= 2 {
-		if i == int(b[1]) {
-			isPowerOfTwo = true
+	nonEmptyBytes := 0
+	powerOfTwoBit := 0
+	for i := 0; i < bnArraySize; i++ {
+		if b[i] > 0 {
+			nonEmptyBytes++
+		}
+		pwr := 1
+		for j := 0; j < 8; j++ {
+			if int(b[i]) == pwr {
+				powerOfTwoBit = i*8 + j
+			}
+			pwr *= 2
 		}
 	}
 	if stop == 0 {
@@ -218,28 +224,8 @@ func bignumDiv(a, b, c *bn) {
 			c[i] = uint8(quot)
 			rem = ent % int(b[0])
 		}
-	} else if stop == 1 && b[0] == 0 && isPowerOfTwo {
-		bAlt := &bn{}
-		bAlt[0] = 128
-		rem := 0
-		for i := bnArraySize - 1; i >= 0; i-- {
-			ent := int(a[i]) + rem*256
-			quot := ent / int(bAlt[0])
-			c[i] = uint8(quot)
-			rem = ent % int(bAlt[0])
-		}
-		aAlt := &bn{}
-		for i := 0; i < bnArraySize; i++ {
-			aAlt[i] = c[i]
-		}
-		bAlt[0] = b[1] * 2
-		rem = 0
-		for i := bnArraySize - 1; i >= 0; i-- {
-			ent := int(aAlt[i]) + rem*256
-			quot := ent / int(bAlt[0])
-			c[i] = uint8(quot)
-			rem = ent % int(bAlt[0])
-		}
+	} else if nonEmptyBytes == 1 && powerOfTwoBit > 0 {
+		bignumRshift(a, c, powerOfTwoBit)
 	} else {
 		for i := 0; i < bnArraySize; i++ {
 			c[i] = 0
