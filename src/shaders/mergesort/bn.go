@@ -529,11 +529,11 @@ func bignumRshift(a, b *bn, nbits int) {
 	bignumAssignIfTrue(b, t1, bits != 0)
 }
 
-func bignumMod(a, b, c *bn) {
-	t1 := &bn{}
-	bignumDiv(a, b, c)
-	bignumMul(c, b, t1)
-	bignumSub(a, t1, c)
+func bignumMod(ia, ib, oc *bn) {
+	tc := &bn{}
+	bignumDiv(ia, ib, oc)
+	bignumMul(oc, ib, tc)
+	bignumSub(ia, tc, oc)
 }
 
 func bignumAnd(a, b, c *bn) {

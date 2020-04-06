@@ -41,7 +41,6 @@ void bignumMul(inout float [16], inout float [16], inout float [16]);
 void bignumPow(inout float [16], inout float [16], inout float [16]);
 void bignumDiv(inout float [16], inout float [16], inout float [16]);
 void bignumMod(inout float [16], inout float [16], inout float [16]);
-void bignumDivmod(inout float [16], inout float [16], inout float [16], inout float [16]);
 void bignumIsqrt(inout float [16], inout float [16]);
 void bignumLshift(inout float [16], inout float [16], float);
 void bignumRshift(inout float [16], inout float [16], float);
@@ -169,6 +168,7 @@ void bignumInc(inout float bn[16]) {
     bignumAssignIfTrue(bn, t, done == 0.0);
 }
 
+#define BIGNUMADD
 void bignumAdd(inout float a[16], inout float b[16], inout float c[16]) {
     float carry = 0.0;
     for (int i = 0; i < 16; i++) {
@@ -178,6 +178,7 @@ void bignumAdd(inout float a[16], inout float b[16], inout float c[16]) {
     }
 }
 
+#define BIGNUMSUB
 void bignumSub(inout float a[16], inout float b[16], inout float c[16]) {
     float borrow = 0.0;
     for (int i = 0; i < 16; i++) {
@@ -189,6 +190,7 @@ void bignumSub(inout float a[16], inout float b[16], inout float c[16]) {
     }
 }
 
+#define BIGNUMMUL
 void bignumMul(inout float a[16], inout float b[16], inout float c[16]) {
     bignumInit(c);
 	for (int i = 0; i < 16; i++) {
@@ -207,6 +209,7 @@ void bignumMul(inout float a[16], inout float b[16], inout float c[16]) {
 	}
 }
 
+#define BIGNUMDIV
 void bignumDiv(inout float a[16], inout float b[16], inout float c[16]) {
     bignumInit(c);
     float current[16];
@@ -244,6 +247,7 @@ void bignumDiv(inout float a[16], inout float b[16], inout float c[16]) {
     }
 }
 
+#define BIGNUMLSHIFT
 void bignumLshift(inout float a[16], inout float b[16], float nbits) {
     nbits = max(floor(nbits), 0.0);
     bignumAssign(b, a);
@@ -257,6 +261,7 @@ void bignumLshift(inout float a[16], inout float b[16], float nbits) {
     }
 }
 
+#define BIGNUMRSHIFT
 void bignumRshift(inout float a[16], inout float b[16], float nbits) {
     nbits = max(floor(nbits), 0.0);
     bignumAssign(b, a);
@@ -270,16 +275,26 @@ void bignumRshift(inout float a[16], inout float b[16], float nbits) {
     }
 }
 
-void bignumMod(inout float a[16], inout float b[16], inout float c[16]) {
-	float tmp[16];
-	bignumDivmod(a, b, tmp, c);
-}
+#ifndef BIGNUMDIV
+    #define BIGNUMDIV
+    void bignumDiv(inout float [16], inout float [16], inout float [16]);
+#endif
 
-void bignumDivmod(inout float a[16], inout float b[16], inout float c[16], inout float d[16]) {
-	float tmp[16];
-	bignumDiv(a, b, c);
-	bignumMul(c, b, tmp);
-	bignumSub(a, tmp, d);
+#ifndef BIGNUMMUL
+    #define BIGNUMMUL
+    void bignumMul(inout float [16], inout float [16], inout float [16]);
+#endif
+
+#ifndef BIGNUMSUB
+    #define BIGNUMSUB
+    void bignumSub(inout float [16], inout float [16], inout float [16]);
+#endif
+
+void bignumMod(inout float ia[16], inout float ib[16], inout float oc[16]) {
+	float tc[16];
+	bignumDiv(ia, ib, oc);
+    bignumMul(oc, ib, tc);
+    bignumSub(ia, tc, oc);
 }
 
 void bignumAnd(inout float a[16], inout float b[16], inout float c[16]) {
