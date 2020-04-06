@@ -8,17 +8,17 @@ func TestFactorial(t *testing.T) {
 
 	bignumFromUint16(n, 100)
 
-	tmp := &bn{}
-	bignumAssign(tmp, n)
+	t0 := &bn{}
+	bignumAssign(t0, n)
 
 	bignumDec(n)
 
-	for bignumIsZero(n) == false {
-		bignumMul(tmp, n, res)
+	for !bignumEquals(n, &bn{}) {
+		bignumMul(t0, n, res)
 		bignumDec(n)
-		bignumAssign(tmp, res)
+		bignumAssign(t0, res)
 	}
-	bignumAssign(res, tmp)
+	bignumAssign(res, t0)
 
 	if bignumToString(res) != expectedFactorial {
 		t.Error(bignumToString(res))
