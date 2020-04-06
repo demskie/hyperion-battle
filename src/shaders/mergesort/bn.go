@@ -186,35 +186,13 @@ func bignumMul(a, b, c *bn) {
 					}
 				}
 				t2 := &bn{}
-				carry := 0
-				for k := 0; k < bnArraySize; k++ {
-					v := int(t1[k]) + int(row[k]) + carry
-					if v > 255 {
-						carry = 1
-					} else {
-						carry = 0
-					}
-					t2[k] = uint8(v % 256)
-				}
-				for k := 0; k < bnArraySize; k++ {
-					if i+j < bnArraySize {
-						row[k] = t2[k]
-					}
-				}
+				bignumAdd(t1, row, t2)
+				bignumAssignIfTrue(row, t2, i+j < 16)
 				if j >= aStop || j >= bStop {
 					break
 				}
 			}
-			carry := 0
-			for i := 0; i < bnArraySize; i++ {
-				v := int(c[i]) + int(row[i]) + carry
-				if v > 255 {
-					carry = 1
-				} else {
-					carry = 0
-				}
-				c[i] = uint8(v % 256)
-			}
+			bignumAdd(c, row, c)
 		}
 	}
 }
