@@ -203,13 +203,11 @@ void bignumAdd(inout float a[16], float f, inout float c[16]) {
 
 #define BIGNUMSUB
 void bignumSub(inout float a[16], inout float b[16], inout float c[16]) {
-    float borrow = 0.0;
+    float borrow, tmp;
     for (int i = 0; i < 16; i++) {
-        float v1 = a[i] + 256.0;
-        float v2 = b[i] + borrow;
-        float v3 = v1 - v2;
-        borrow = floatLessThanOrEqual(v3, 255.0);
-        c[i] = mod(v3, 256.0);
+        tmp = a[i] - b[i] - borrow;
+        borrow = floatLessThan(tmp, 0.0);
+        c[i] = mod(tmp, 256.0); 
     }
 }
 

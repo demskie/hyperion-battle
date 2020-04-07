@@ -63,5 +63,5 @@ test("mergesort", () => {
     if (pstage >= Math.pow(target.width, 2)) break;
   }
 
-  throw new Error(common.toUint16Pairs(target.readPixels()));
+  // throw new Error(common.toUint16Pairs(target.readPixels()));
 });

@@ -86,15 +86,13 @@ func bignumAdd(a, b, c *bn) {
 func bignumSub(a, b, c *bn) {
 	borrow := 0
 	for i := 0; i < bnArraySize; i++ {
-		v1 := int(a[i]) + 256
-		v2 := int(b[i]) + borrow
-		v3 := v1 - v2
-		if v3 <= 255 {
+		v := int(a[i]) - int(b[i]) - borrow
+		if v < 0 {
 			borrow = 1
 		} else {
 			borrow = 0
 		}
-		c[i] = uint8(v3 % 256)
+		c[i] = uint8(v % 256)
 	}
 }
 
