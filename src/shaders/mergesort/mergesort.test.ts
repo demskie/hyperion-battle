@@ -35,7 +35,7 @@ test("mergesort", () => {
     [0, 22, 0, 80],
     [0, 23, 0, 70],
     [0, 24, 0, 60],
-    [0, 25, 0, 50]
+    [0, 25, 0, 50],
   ].forEach((vals: number[]) => {
     arr.push(...vals);
   });
@@ -53,7 +53,7 @@ test("mergesort", () => {
         TwoStage_PmS_1: pstage + pstage - (ppass % pstage) - 1,
         Width: target.width,
         Height: target.width,
-        Pass: ppass
+        Pass: ppass,
       });
       ppass /= 2;
       if (ppass < 1) break;

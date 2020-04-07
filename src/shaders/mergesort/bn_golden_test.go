@@ -51,19 +51,19 @@ func TestGolden(t *testing.T) {
 			panic("unknown operator detected")
 		}
 		if oracle.op == "p" {
-			if bignumCmp(n3, res) != 0 {
+			if !bignumEquals(n3, res) {
 				t.Errorf("[ FAIL ] pow(%v, %v) = %v and not %v\n", oracle.a, oracle.b, bignumToString(res), oracle.c)
 			}
 		} else if oracle.op == "<" || oracle.op == ">" {
-			if bignumCmp(n3, res) != 0 {
+			if !bignumEquals(n3, res) {
 				t.Errorf("[ FAIL ] %v %v%v %v = %v and not %v\n", oracle.a, oracle.op, oracle.op, oracle.b, bignumToString(res), oracle.c)
 			}
 		} else if oracle.op == "sqrt" {
-			if bignumCmp(n3, res) != 0 {
+			if !bignumEquals(n3, res) {
 				t.Errorf("[ FAIL ] %v(%v, %v) = %v and not %v\n", oracle.op, oracle.a, oracle.b, bignumToString(res), oracle.c)
 			}
 		} else {
-			if bignumCmp(n3, res) != 0 {
+			if !bignumEquals(n3, res) {
 				t.Errorf("[ FAIL ] %v %v %v = %v and not %v\n", oracle.a, oracle.op, oracle.b, bignumToString(res), oracle.c)
 			}
 		}
