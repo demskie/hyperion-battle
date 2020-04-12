@@ -8,7 +8,7 @@ import (
 
 type bigint [arraysize]byte
 
-const arraysize = 128
+const arraysize = 8
 
 /*
 
@@ -18,42 +18,19 @@ For example, let's divide -7 by 5. Using 4-bit twos-complement binary encoding, 
 
 */
 
-func bigintFromInt16(a *bigint, i int16) {
-	binary.LittleEndian.PutUint16(a[:], uint16(i))
-	applyTwosComplement(a, i < 0)
-}
-
-func bigintFromInt32(a *bigint, i int32) {
-	binary.LittleEndian.PutUint32(a[:], uint32(i))
-	applyTwosComplement(a, i < 0)
-}
-
 func bigintFromInt64(a *bigint, i int64) {
-	binary.LittleEndian.PutUint64(a[:], uint64(i))
+	u := i
+	if i < 0 {
+		u *= -1
+	}
+	binary.LittleEndian.PutUint64(a[:], uint64(u))
 	applyTwosComplement(a, i < 0)
-}
-
-func bigintToInt16(a *bigint) int16 {
-	negative := removeTwosComplement(a)
-	v := binary.LittleEndian.Uint16(a[:])
-	if negative {
-		return -int16(v)
-	}
-	return int16(v)
-}
-
-func bigintToInt32(a *bigint) int32 {
-	negative := removeTwosComplement(a)
-	v := binary.LittleEndian.Uint32(a[:])
-	if negative {
-		return -int32(v)
-	}
-	return int32(v)
 }
 
 func bigintToInt64(a *bigint) int64 {
 	negative := removeTwosComplement(a)
 	v := binary.LittleEndian.Uint64(a[:])
+	applyTwosComplement(a, negative)
 	if negative {
 		return -int64(v)
 	}
@@ -65,37 +42,34 @@ func applyTwosComplement(a *bigint, negative bool) {
 		a[arraysize-1] -= 128
 	}
 	if negative {
-		a[arraysize-1] += 128
-	}
-	for i := 0; i < arraysize; i++ {
-		a[i] = 255 - a[i]
-	}
-	carry := 1
-	for i := 0; i < arraysize; i++ {
-		v := int(a[i]) + carry
-		if v <= 255 {
-			carry = 0
+		for i := 0; i < arraysize; i++ {
+			a[i] = 255 - a[i]
 		}
-		a[i] = uint8(v % 256)
+		carry := 1
+		for i := 0; i < arraysize; i++ {
+			v := int(a[i]) + carry
+			if v <= 255 {
+				carry = 0
+			}
+			a[i] = uint8(v % 256)
+		}
 	}
 }
 
 func removeTwosComplement(a *bigint) (negative bool) {
-	for i := 0; i < arraysize; i++ {
-		a[i] = 255 - a[i]
-	}
-	carry := 1
-	for i := 0; i < arraysize; i++ {
-		v := int(a[i]) + carry
-		if v <= 255 {
-			carry = 0
+	negative = a[arraysize-1] >= 128
+	if negative {
+		for i := 0; i < arraysize; i++ {
+			a[i] = 255 - a[i]
 		}
-		a[i] = uint8(v % 256)
-	}
-	negative = false
-	if a[arraysize-1] >= 128 {
-		negative = true
-		a[arraysize-1] -= 128
+		carry := 1
+		for i := 0; i < arraysize; i++ {
+			v := int(a[i]) + carry
+			if v <= 255 {
+				carry = 0
+			}
+			a[i] = uint8(v % 256)
+		}
 	}
 	return negative
 }
@@ -107,8 +81,7 @@ func bigintToString(in *bigint) string {
 		bytes = append(bytes, in[i])
 	}
 	n := new(big.Int)
-
-	n.SetBytes(bytes[:])
+	n.SetBytes(bytes)
 	applyTwosComplement(in, negative)
 	if negative {
 		n.Mul(n, big.NewInt(-1))
@@ -125,29 +98,11 @@ func bigintToBytes(in *bigint) []uint8 {
 }
 
 func bigintAdd(a, b, c *bigint) {
-	carry := 0
-	for i := 0; i < arraysize; i++ {
-		v := int(a[i]) + int(b[i]) + carry
-		if v > 255 {
-			carry = 1
-		} else {
-			carry = 0
-		}
-		c[i] = uint8(v % 256)
-	}
+	bignumAdd((*bn)(unsafe.Pointer(a)), (*bn)(unsafe.Pointer(b)), (*bn)(unsafe.Pointer(c)))
 }
 
 func bigintSub(a, b, c *bigint) {
-	borrow := 0
-	for i := 0; i < arraysize; i++ {
-		v := int(a[i]) - int(b[i]) - borrow
-		if v < 0 {
-			borrow = 1
-		} else {
-			borrow = 0
-		}
-		c[i] = uint8(v % 256)
-	}
+	bignumSub((*bn)(unsafe.Pointer(a)), (*bn)(unsafe.Pointer(b)), (*bn)(unsafe.Pointer(c)))
 }
 
 func bigintMul(a, b, c *bigint) {

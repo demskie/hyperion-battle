@@ -8,7 +8,7 @@ import (
 
 type bn [bnArraySize]byte
 
-const bnArraySize = 128
+const bnArraySize = 8
 
 func bignumFromUint16(a *bn, i uint16) {
 	binary.LittleEndian.PutUint16(a[:], i)
