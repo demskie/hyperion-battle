@@ -22,6 +22,22 @@ func BenchmarkBigNumSub(b *testing.B) {
 	}
 }
 
+func BenchmarkBigNumLshift(b *testing.B) {
+	n1 := &bn{}
+	bignumFromUint64(n1, 123456789)
+	for i := 0; i < b.N; i++ {
+		bignumLshift(n1, n1, 128)
+	}
+}
+
+func BenchmarkBigNumRshift(b *testing.B) {
+	n1 := &bn{}
+	bignumFromUint64(n1, 123456789)
+	for i := 0; i < b.N; i++ {
+		bignumRshift(n1, n1, 128)
+	}
+}
+
 func BenchmarkBigNumMultiply123(b *testing.B) {
 	n1, n2, n3 := &bn{}, &bn{}, &bn{}
 	bignumFromUint64(n1, 123456789)
