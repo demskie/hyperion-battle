@@ -5,66 +5,66 @@ import "testing"
 func TestGolden(t *testing.T) {
 	testData := getTestData()
 	for _, oracle := range testData {
-		res := &bn{}
-		n1, n2, n3 := &bn{}, &bn{}, &bn{}
-		bignumFromUint64(n1, oracle.a)
-		bignumFromUint64(n2, oracle.b)
-		bignumFromUint64(n3, oracle.c)
+		res := &biguint{}
+		n1, n2, n3 := &biguint{}, &biguint{}, &biguint{}
+		biguintFromUint64(n1, oracle.a)
+		biguintFromUint64(n2, oracle.b)
+		biguintFromUint64(n3, oracle.c)
 		switch oracle.op {
 		case "+":
-			bignumAdd(n1, n2, res)
+			biguintAdd(n1, n2, res)
 			break
 		case "-":
-			bignumSub(n1, n2, res)
+			biguintSub(n1, n2, res)
 			break
 		case "*":
-			bignumMul(n1, n2, res)
+			biguintMul(n1, n2, res)
 			break
 		case "/":
-			bignumDiv(n1, n2, res)
+			biguintDiv(n1, n2, res)
 			break
 		case "%":
-			bignumMod(n1, n2, res)
+			biguintMod(n1, n2, res)
 			break
 		case "&":
-			bignumAnd(n1, n2, res)
+			biguintAnd(n1, n2, res)
 			break
 		case "|":
-			bignumOr(n1, n2, res)
+			biguintOr(n1, n2, res)
 			break
 		case "^":
-			bignumXor(n1, n2, res)
+			biguintXor(n1, n2, res)
 			break
 		case "p":
-			bignumPow(n1, n2, res)
+			biguintPow(n1, n2, res)
 			break
 		case "<":
-			bignumLshift(n1, res, int(oracle.b))
+			biguintLshift(n1, res, int(oracle.b))
 			break
 		case ">":
-			bignumRshift(n1, res, int(oracle.b))
+			biguintRshift(n1, res, int(oracle.b))
 			break
 		case "sqrt":
-			bignumSqrt(n1, res)
+			biguintSqrt(n1, res)
 			break
 		default:
 			panic("unknown operator detected")
 		}
 		if oracle.op == "p" {
-			if !bignumEquals(n3, res) {
-				t.Errorf("[ FAIL ] pow(%v, %v) = %v and not %v\n", oracle.a, oracle.b, bignumToString(res), oracle.c)
+			if !biguintEquals(n3, res) {
+				t.Errorf("[ FAIL ] pow(%v, %v) = %v and not %v\n", oracle.a, oracle.b, biguintToString(res), oracle.c)
 			}
 		} else if oracle.op == "<" || oracle.op == ">" {
-			if !bignumEquals(n3, res) {
-				t.Errorf("[ FAIL ] %v %v%v %v = %v and not %v\n", oracle.a, oracle.op, oracle.op, oracle.b, bignumToString(res), oracle.c)
+			if !biguintEquals(n3, res) {
+				t.Errorf("[ FAIL ] %v %v%v %v = %v and not %v\n", oracle.a, oracle.op, oracle.op, oracle.b, biguintToString(res), oracle.c)
 			}
 		} else if oracle.op == "sqrt" {
-			if !bignumEquals(n3, res) {
-				t.Errorf("[ FAIL ] %v(%v, %v) = %v and not %v\n", oracle.op, oracle.a, oracle.b, bignumToString(res), oracle.c)
+			if !biguintEquals(n3, res) {
+				t.Errorf("[ FAIL ] %v(%v, %v) = %v and not %v\n", oracle.op, oracle.a, oracle.b, biguintToString(res), oracle.c)
 			}
 		} else {
-			if !bignumEquals(n3, res) {
-				t.Errorf("[ FAIL ] %v %v %v = %v and not %v\n", oracle.a, oracle.op, oracle.b, bignumToString(res), oracle.c)
+			if !biguintEquals(n3, res) {
+				t.Errorf("[ FAIL ] %v %v %v = %v and not %v\n", oracle.a, oracle.op, oracle.b, biguintToString(res), oracle.c)
 			}
 		}
 	}

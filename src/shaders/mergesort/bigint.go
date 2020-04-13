@@ -6,17 +6,7 @@ import (
 	"unsafe"
 )
 
-type bigint [arraysize]byte
-
-const arraysize = 8
-
-/*
-
-A simple answer is to make both numbers positive (take the absolute value), perform the division, then negate the result if the XOR of the two original sign bits is 1.
-
-For example, let's divide -7 by 5. Using 4-bit twos-complement binary encoding, that is 1001 div 0101. Taking the absolute value of each results in 0111 div 0101. The divide yields 0001. Since the XOR of the two original sign bits is 1, this value is negated. Negating means complementing then incrementing by 1. The negative of 0001 is 1111, which is the final answer. 1111 in decimal is -1.
-
-*/
+type bigint [BIGINTBYTECOUNT]byte
 
 func bigintFromInt64(a *bigint, i int64) {
 	u := i
@@ -38,15 +28,15 @@ func bigintToInt64(a *bigint) int64 {
 }
 
 func applyTwosComplement(a *bigint, negative bool) {
-	if a[arraysize-1] >= 128 {
-		a[arraysize-1] -= 128
+	if a[BIGINTBYTECOUNT-1] >= 128 {
+		a[BIGINTBYTECOUNT-1] -= 128
 	}
 	if negative {
-		for i := 0; i < arraysize; i++ {
+		for i := 0; i < BIGINTBYTECOUNT; i++ {
 			a[i] = 255 - a[i]
 		}
 		carry := 1
-		for i := 0; i < arraysize; i++ {
+		for i := 0; i < BIGINTBYTECOUNT; i++ {
 			v := int(a[i]) + carry
 			if v <= 255 {
 				carry = 0
@@ -57,13 +47,13 @@ func applyTwosComplement(a *bigint, negative bool) {
 }
 
 func removeTwosComplement(a *bigint) (negative bool) {
-	negative = a[arraysize-1] >= 128
+	negative = a[BIGINTBYTECOUNT-1] >= 128
 	if negative {
-		for i := 0; i < arraysize; i++ {
+		for i := 0; i < BIGINTBYTECOUNT; i++ {
 			a[i] = 255 - a[i]
 		}
 		carry := 1
-		for i := 0; i < arraysize; i++ {
+		for i := 0; i < BIGINTBYTECOUNT; i++ {
 			v := int(a[i]) + carry
 			if v <= 255 {
 				carry = 0
@@ -77,7 +67,7 @@ func removeTwosComplement(a *bigint) (negative bool) {
 func bigintToString(in *bigint) string {
 	negative := removeTwosComplement(in)
 	bytes := []byte{}
-	for i := arraysize - 1; i >= 0; i-- {
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
 		bytes = append(bytes, in[i])
 	}
 	n := new(big.Int)
@@ -91,24 +81,24 @@ func bigintToString(in *bigint) string {
 
 func bigintToBytes(in *bigint) []uint8 {
 	bytes := []uint8{}
-	for i := 0; i < arraysize; i++ {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		bytes = append(bytes, in[i])
 	}
 	return bytes
 }
 
 func bigintAdd(a, b, c *bigint) {
-	bignumAdd((*bn)(unsafe.Pointer(a)), (*bn)(unsafe.Pointer(b)), (*bn)(unsafe.Pointer(c)))
+	biguintAdd((*biguint)(unsafe.Pointer(a)), (*biguint)(unsafe.Pointer(b)), (*biguint)(unsafe.Pointer(c)))
 }
 
 func bigintSub(a, b, c *bigint) {
-	bignumSub((*bn)(unsafe.Pointer(a)), (*bn)(unsafe.Pointer(b)), (*bn)(unsafe.Pointer(c)))
+	biguintSub((*biguint)(unsafe.Pointer(a)), (*biguint)(unsafe.Pointer(b)), (*biguint)(unsafe.Pointer(c)))
 }
 
 func bigintMul(a, b, c *bigint) {
 	aNegative := removeTwosComplement(a)
 	bNegative := removeTwosComplement(b)
-	bignumMul((*bn)(unsafe.Pointer(a)), (*bn)(unsafe.Pointer(b)), (*bn)(unsafe.Pointer(c)))
+	biguintMul((*biguint)(unsafe.Pointer(a)), (*biguint)(unsafe.Pointer(b)), (*biguint)(unsafe.Pointer(c)))
 	applyTwosComplement(a, aNegative)
 	applyTwosComplement(b, bNegative)
 	applyTwosComplement(c, aNegative != bNegative)
@@ -117,8 +107,173 @@ func bigintMul(a, b, c *bigint) {
 func bigintDiv(a, b, c *bigint) {
 	aNegative := removeTwosComplement(a)
 	bNegative := removeTwosComplement(b)
-	bignumDiv((*bn)(unsafe.Pointer(a)), (*bn)(unsafe.Pointer(b)), (*bn)(unsafe.Pointer(c)))
+	biguintDiv((*biguint)(unsafe.Pointer(a)), (*biguint)(unsafe.Pointer(b)), (*biguint)(unsafe.Pointer(c)))
 	applyTwosComplement(a, aNegative)
 	applyTwosComplement(b, bNegative)
 	applyTwosComplement(c, aNegative != bNegative)
+}
+
+func bigintLshift(a, b *bigint, count int) {
+	negative := removeTwosComplement(a)
+	biguintLshift((*biguint)(unsafe.Pointer(a)), (*biguint)(unsafe.Pointer(b)), count)
+	applyTwosComplement(a, negative)
+	applyTwosComplement(b, negative)
+}
+
+func bigintLshiftByOne(a *bigint) {
+	negative := removeTwosComplement(a)
+	biguintLshiftByOne((*biguint)(unsafe.Pointer(a)))
+	applyTwosComplement(a, negative)
+}
+
+func bigintRshift(a, b *bigint, count int) {
+	negative := removeTwosComplement(a)
+	biguintRshift((*biguint)(unsafe.Pointer(a)), (*biguint)(unsafe.Pointer(b)), count)
+	applyTwosComplement(a, negative)
+	applyTwosComplement(b, negative)
+}
+
+func bigintRshiftByOne(a *bigint) {
+	negative := removeTwosComplement(a)
+	biguintRshiftByOne((*biguint)(unsafe.Pointer(a)))
+	applyTwosComplement(a, negative)
+}
+
+func bigintAnd(a, b, c *bigint) {
+	biguintAnd((*biguint)(unsafe.Pointer(a)), (*biguint)(unsafe.Pointer(b)), (*biguint)(unsafe.Pointer(c)))
+}
+
+func bigintMod(ia, ib, oc *bigint) {
+	// tc := &bigint{}
+	// add 128 to every byte (what about MSB containing sign?)
+}
+
+func bigintOr(a, b, c *bigint) {
+	biguintOr((*biguint)(unsafe.Pointer(a)), (*biguint)(unsafe.Pointer(b)), (*biguint)(unsafe.Pointer(c)))
+}
+
+func bigintXor(a, b, c *bigint) {
+	biguintXor((*biguint)(unsafe.Pointer(a)), (*biguint)(unsafe.Pointer(b)), (*biguint)(unsafe.Pointer(c)))
+}
+
+func bigintEquals(a, b *bigint) bool {
+	cmp := 0
+	aNegative := removeTwosComplement(a)
+	bNegative := removeTwosComplement(b)
+	if aNegative == false && bNegative == true {
+		cmp++
+	}
+	if aNegative == true && bNegative == false {
+		cmp--
+	}
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
+		if cmp == 0 && a[i] > b[i] {
+			cmp++
+		}
+		if cmp == 0 && a[i] < b[i] {
+			cmp--
+		}
+	}
+	applyTwosComplement(a, aNegative)
+	applyTwosComplement(b, bNegative)
+	return cmp == 0
+}
+
+func bigintLessThan(a, b *bigint) bool {
+	cmp := 0
+	aNegative := removeTwosComplement(a)
+	bNegative := removeTwosComplement(b)
+	if aNegative == false && bNegative == true {
+		cmp++
+	}
+	if aNegative == true && bNegative == false {
+		cmp--
+	}
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
+		if cmp == 0 && a[i] > b[i] {
+			cmp++
+		}
+		if cmp == 0 && a[i] < b[i] {
+			cmp--
+		}
+	}
+	applyTwosComplement(a, aNegative)
+	applyTwosComplement(b, bNegative)
+	return cmp < 0
+}
+
+func bigintLessThanOrEqual(a, b *bigint) bool {
+	cmp := 0
+	aNegative := removeTwosComplement(a)
+	bNegative := removeTwosComplement(b)
+	if aNegative == false && bNegative == true {
+		cmp++
+	}
+	if aNegative == true && bNegative == false {
+		cmp--
+	}
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
+		if cmp == 0 && a[i] > b[i] {
+			cmp++
+		}
+		if cmp == 0 && a[i] < b[i] {
+			cmp--
+		}
+	}
+	applyTwosComplement(a, aNegative)
+	applyTwosComplement(b, bNegative)
+	return cmp <= 0
+}
+
+func bigintGreaterThan(a, b *bigint) bool {
+	cmp := 0
+	aNegative := removeTwosComplement(a)
+	bNegative := removeTwosComplement(b)
+	if aNegative == false && bNegative == true {
+		cmp++
+	}
+	if aNegative == true && bNegative == false {
+		cmp--
+	}
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
+		if cmp == 0 && a[i] > b[i] {
+			cmp++
+		}
+		if cmp == 0 && a[i] < b[i] {
+			cmp--
+		}
+	}
+	applyTwosComplement(a, aNegative)
+	applyTwosComplement(b, bNegative)
+	return cmp > 0
+}
+
+func bigintGreaterThanOrEqual(a, b *bigint) bool {
+	cmp := 0
+	aNegative := removeTwosComplement(a)
+	bNegative := removeTwosComplement(b)
+	if aNegative == false && bNegative == true {
+		cmp++
+	}
+	if aNegative == true && bNegative == false {
+		cmp--
+	}
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
+		if cmp == 0 && a[i] > b[i] {
+			cmp++
+		}
+		if cmp == 0 && a[i] < b[i] {
+			cmp--
+		}
+	}
+	applyTwosComplement(a, aNegative)
+	applyTwosComplement(b, bNegative)
+	return cmp >= 0
+}
+
+func bigintPow(a, b, c *bigint) {
+	biguintPow((*biguint)(unsafe.Pointer(a)), (*biguint)(unsafe.Pointer(b)), (*biguint)(unsafe.Pointer(c)))
+	// http://numerical.recipes/forum/showthread.php?p=4707
+	// If a negative number is raised to an even power, the result will be positive.
+	// If a negative number is raised to an odd power, the result will be negative.
 }

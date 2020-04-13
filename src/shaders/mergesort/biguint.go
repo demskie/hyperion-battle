@@ -6,37 +6,22 @@ import (
 	"math/big"
 )
 
-type bn [bnArraySize]byte
+// BIGINTBYTECOUNT ...
+const BIGINTBYTECOUNT = 128
 
-const bnArraySize = 8
+type biguint [BIGINTBYTECOUNT]byte
 
-func bignumFromUint16(a *bn, i uint16) {
-	binary.LittleEndian.PutUint16(a[:], i)
-}
-
-func bignumFromUint32(a *bn, i uint32) {
-	binary.LittleEndian.PutUint32(a[:], i)
-}
-
-func bignumFromUint64(a *bn, i uint64) {
+func biguintFromUint64(a *biguint, i uint64) {
 	binary.LittleEndian.PutUint64(a[:], i)
 }
 
-func bignumToUint16(a *bn) uint16 {
-	return binary.LittleEndian.Uint16(a[:])
-}
-
-func bignumToUint32(a *bn) uint32 {
-	return binary.LittleEndian.Uint32(a[:])
-}
-
-func bignumToUint64(a *bn) uint64 {
+func biguintToUint64(a *biguint) uint64 {
 	return binary.LittleEndian.Uint64(a[:])
 }
 
-func bignumToString(in *bn) string {
+func biguintToString(in *biguint) string {
 	bytes := []byte{}
-	for i := bnArraySize - 1; i >= 0; i-- {
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
 		bytes = append(bytes, in[i])
 	}
 	n := new(big.Int)
@@ -44,17 +29,17 @@ func bignumToString(in *bn) string {
 	return n.String()
 }
 
-func bignumToBytes(in *bn) []uint8 {
+func biguintToBytes(in *biguint) []uint8 {
 	bytes := []uint8{}
-	for i := 0; i < bnArraySize; i++ {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		bytes = append(bytes, in[i])
 	}
 	return bytes
 }
 
-func bignumAdd(a, b, c *bn) {
+func biguintAdd(a, b, c *biguint) {
 	carry := 0
-	for i := 0; i < bnArraySize; i++ {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		v := int(a[i]) + int(b[i]) + carry
 		if v > 255 {
 			carry = 1
@@ -65,9 +50,9 @@ func bignumAdd(a, b, c *bn) {
 	}
 }
 
-func bignumSub(a, b, c *bn) {
+func biguintSub(a, b, c *biguint) {
 	borrow := 0
-	for i := 0; i < bnArraySize; i++ {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		v := int(a[i]) - int(b[i]) - borrow
 		if v < 0 {
 			borrow = 1
@@ -78,10 +63,10 @@ func bignumSub(a, b, c *bn) {
 	}
 }
 
-func bignumMul(a, b, c *bn) {
+func biguintMul(a, b, c *biguint) {
 	aStop := 0
 	bStop := 0
-	for i := bnArraySize - 1; i > 0; i-- {
+	for i := BIGINTBYTECOUNT - 1; i > 0; i-- {
 		if aStop == 0 && a[i] > 0 {
 			aStop = i
 		}
@@ -89,8 +74,8 @@ func bignumMul(a, b, c *bn) {
 			bStop = i
 		}
 	}
-	t1 := [2 * bnArraySize]uint8{}
-	for i := 0; i < bnArraySize; i++ {
+	t1 := [2 * BIGINTBYTECOUNT]uint8{}
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		if aStop < bStop {
 			t1[i] = a[i]
 			a[i] = b[i]
@@ -99,7 +84,7 @@ func bignumMul(a, b, c *bn) {
 	}
 	nonEmptyBytes := 0
 	powerOfTwoBit := 0
-	for i := 0; i < bnArraySize; i++ {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		if b[i] > 0 {
 			nonEmptyBytes++
 		}
@@ -113,42 +98,42 @@ func bignumMul(a, b, c *bn) {
 	}
 	if aStop == 0 || bStop == 0 {
 		carry := 0
-		for i := 0; i < bnArraySize; i++ {
+		for i := 0; i < BIGINTBYTECOUNT; i++ {
 			v := int(a[i])*int(b[0]) + carry
 			carry = v / 256
 			c[i] = uint8(v % 256)
 		}
 	} else if nonEmptyBytes == 1 && powerOfTwoBit > 0 {
-		bignumLshift(a, c, powerOfTwoBit)
+		biguintLshift(a, c, powerOfTwoBit)
 	} else {
 		var product, carry uint16
-		for i := 0; i < bnArraySize; i++ {
+		for i := 0; i < BIGINTBYTECOUNT; i++ {
 			t1[i] = 0
 		}
-		for i := 0; i < bnArraySize; i++ {
-			for j := 0; j < bnArraySize; j++ {
+		for i := 0; i < BIGINTBYTECOUNT; i++ {
+			for j := 0; j < BIGINTBYTECOUNT; j++ {
 				product = uint16(a[i])*uint16(b[j]) + uint16(t1[i+j])
 				carry = product / 256
 				t1[i+j] = uint8(product - carry*256)
 				t1[i+j+1] += uint8(carry)
 			}
 		}
-		for i := 0; i < bnArraySize; i++ {
+		for i := 0; i < BIGINTBYTECOUNT; i++ {
 			c[i] = t1[i]
 		}
 	}
 }
 
-func bignumDiv(a, b, c *bn) {
+func biguintDiv(a, b, c *biguint) {
 	stop := 0
-	for i := bnArraySize - 1; i > 0; i-- {
+	for i := BIGINTBYTECOUNT - 1; i > 0; i-- {
 		if stop == 0 && b[i] > 0 {
 			stop = i
 		}
 	}
 	nonEmptyBytes := 0
 	powerOfTwoBit := 0
-	for i := 0; i < bnArraySize; i++ {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		if b[i] > 0 {
 			nonEmptyBytes++
 		}
@@ -162,68 +147,68 @@ func bignumDiv(a, b, c *bn) {
 	}
 	if stop == 0 {
 		rem := 0
-		for i := bnArraySize - 1; i >= 0; i-- {
+		for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
 			ent := int(a[i]) + rem*256
 			rem = ent % int(b[0])
 			c[i] = uint8(ent / int(b[0]))
 		}
 	} else if nonEmptyBytes == 1 && powerOfTwoBit > 0 {
-		bignumRshift(a, c, powerOfTwoBit)
+		biguintRshift(a, c, powerOfTwoBit)
 	} else {
-		for i := 0; i < bnArraySize; i++ {
+		for i := 0; i < BIGINTBYTECOUNT; i++ {
 			c[i] = 0
 		}
-		current := &bn{}
-		denom := &bn{}
-		t1 := &bn{}
-		t2 := &bn{}
-		t3 := &bn{}
+		current := &biguint{}
+		denom := &biguint{}
+		t1 := &biguint{}
+		t2 := &biguint{}
+		t3 := &biguint{}
 		current[0] = 1
-		bignumAssign(denom, b)
-		bignumAssign(t1, a)
+		biguintAssign(denom, b)
+		biguintAssign(t1, a)
 		hasOverflowed := false
-		for i := 0; i < 8*bnArraySize; i++ {
-			if bignumGreaterThan(denom, a) {
+		for i := 0; i < 8*BIGINTBYTECOUNT; i++ {
+			if biguintGreaterThan(denom, a) {
 				break
 			}
-			if denom[bnArraySize-1] >= uint8(256/2) {
+			if denom[BIGINTBYTECOUNT-1] >= uint8(256/2) {
 				hasOverflowed = true
 				break
 			}
-			bignumLshiftByOne(current)
-			bignumLshiftByOne(denom)
+			biguintLshiftByOne(current)
+			biguintLshiftByOne(denom)
 		}
-		bignumAssign(t2, current)
-		bignumAssign(t3, denom)
-		bignumRshiftByOne(current)
-		bignumRshiftByOne(denom)
-		bignumAssignIfTrue(current, t2, hasOverflowed == false)
-		bignumAssignIfTrue(denom, t3, hasOverflowed == false)
-		for i := 0; i < 8*bnArraySize; i++ {
-			if bignumEquals(current, &bn{}) {
+		biguintAssign(t2, current)
+		biguintAssign(t3, denom)
+		biguintRshiftByOne(current)
+		biguintRshiftByOne(denom)
+		biguintAssignIfTrue(current, t2, hasOverflowed == false)
+		biguintAssignIfTrue(denom, t3, hasOverflowed == false)
+		for i := 0; i < 8*BIGINTBYTECOUNT; i++ {
+			if biguintEquals(current, &biguint{}) {
 				break
 			}
-			shouldModify := bignumGreaterThanOrEqual(t1, denom)
-			bignumAssign(t2, t1)
-			bignumAssign(t3, c)
-			bignumSub(t2, denom, t2)
-			bignumOr(t3, current, t3)
-			bignumAssignIfTrue(t1, t2, shouldModify)
-			bignumAssignIfTrue(c, t3, shouldModify)
-			bignumRshiftByOne(current)
-			bignumRshiftByOne(denom)
+			shouldModify := biguintGreaterThanOrEqual(t1, denom)
+			biguintAssign(t2, t1)
+			biguintAssign(t3, c)
+			biguintSub(t2, denom, t2)
+			biguintOr(t3, current, t3)
+			biguintAssignIfTrue(t1, t2, shouldModify)
+			biguintAssignIfTrue(c, t3, shouldModify)
+			biguintRshiftByOne(current)
+			biguintRshiftByOne(denom)
 		}
 	}
 }
 
-func bignumLshift(a, b *bn, count int) {
-	if count > bnArraySize*8 {
-		count = bnArraySize * 8
+func biguintLshift(a, b *biguint, count int) {
+	if count > BIGINTBYTECOUNT*8 {
+		count = BIGINTBYTECOUNT * 8
 	}
 	byteCount := count / 8
-	bignumAssign(b, a)
-	for i := 0; i < bnArraySize; i++ {
-		for j := bnArraySize - 1; j > 0; j-- {
+	biguintAssign(b, a)
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
+		for j := BIGINTBYTECOUNT - 1; j > 0; j-- {
 			if byteCount > 0 {
 				b[j] = b[j-1]
 			}
@@ -234,9 +219,9 @@ func bignumLshift(a, b *bn, count int) {
 		byteCount--
 	}
 	count = count % 8
-	bits := &[bnArraySize * 8]uint8{}
-	for i := 0; i < bnArraySize; i++ {
-		v := uint8(b[bnArraySize-1-i])
+	bits := &[BIGINTBYTECOUNT * 8]uint8{}
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
+		v := uint8(b[BIGINTBYTECOUNT-1-i])
 		x := uint8(128)
 		for j := 0; j < 8; j++ {
 			// bits[i*8+j] = v >= x
@@ -248,11 +233,11 @@ func bignumLshift(a, b *bn, count int) {
 		}
 	}
 	for i := 0; i < 8; i++ {
-		for j := 0; j < bnArraySize*8-1; j++ {
+		for j := 0; j < BIGINTBYTECOUNT*8-1; j++ {
 			bits[j] = bits[j+1]
 		}
-		bits[bnArraySize*8-1] = 0
-		for j := 0; j < bnArraySize; j++ {
+		bits[BIGINTBYTECOUNT*8-1] = 0
+		for j := 0; j < BIGINTBYTECOUNT; j++ {
 			if i < count {
 				v := bits[j*8+0] * 128
 				v += bits[j*8+1] * 64
@@ -262,16 +247,16 @@ func bignumLshift(a, b *bn, count int) {
 				v += bits[j*8+5] * 4
 				v += bits[j*8+6] * 2
 				v += bits[j*8+7] * 1
-				b[bnArraySize-1-j] = byte(v)
+				b[BIGINTBYTECOUNT-1-j] = byte(v)
 			}
 		}
 	}
 }
 
-func bignumLshiftByOne(a *bn) {
-	bits := &[bnArraySize * 8]uint8{}
-	for i := 0; i < bnArraySize; i++ {
-		v := uint8(a[bnArraySize-1-i])
+func biguintLshiftByOne(a *biguint) {
+	bits := &[BIGINTBYTECOUNT * 8]uint8{}
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
+		v := uint8(a[BIGINTBYTECOUNT-1-i])
 		x := uint8(128)
 		for j := 0; j < 8; j++ {
 			// bits[i*8+j] = v >= x
@@ -282,11 +267,11 @@ func bignumLshiftByOne(a *bn) {
 			x /= 2
 		}
 	}
-	for i := 0; i < bnArraySize*8-1; i++ {
+	for i := 0; i < BIGINTBYTECOUNT*8-1; i++ {
 		bits[i] = bits[i+1]
 	}
-	bits[bnArraySize*8-1] = 0
-	for i := 0; i < bnArraySize; i++ {
+	bits[BIGINTBYTECOUNT*8-1] = 0
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		v := bits[i*8+0] * 128
 		v += bits[i*8+1] * 64
 		v += bits[i*8+2] * 32
@@ -295,31 +280,31 @@ func bignumLshiftByOne(a *bn) {
 		v += bits[i*8+5] * 4
 		v += bits[i*8+6] * 2
 		v += bits[i*8+7] * 1
-		a[bnArraySize-1-i] = byte(v)
+		a[BIGINTBYTECOUNT-1-i] = byte(v)
 	}
 }
 
-func bignumRshift(a, b *bn, count int) {
-	if count > bnArraySize*8 {
-		count = bnArraySize * 8
+func biguintRshift(a, b *biguint, count int) {
+	if count > BIGINTBYTECOUNT*8 {
+		count = BIGINTBYTECOUNT * 8
 	}
 	byteCount := count / 8
-	bignumAssign(b, a)
-	for i := 0; i < bnArraySize; i++ {
-		for j := 0; j < bnArraySize-1; j++ {
+	biguintAssign(b, a)
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
+		for j := 0; j < BIGINTBYTECOUNT-1; j++ {
 			if byteCount > 0 {
 				b[j] = b[j+1]
 			}
 		}
 		if byteCount > 0 {
-			b[bnArraySize-1] = 0
+			b[BIGINTBYTECOUNT-1] = 0
 		}
 		byteCount--
 	}
 	count = count % 8
-	bits := &[bnArraySize * 8]uint8{}
-	for i := 0; i < bnArraySize; i++ {
-		v := uint8(b[bnArraySize-1-i])
+	bits := &[BIGINTBYTECOUNT * 8]uint8{}
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
+		v := uint8(b[BIGINTBYTECOUNT-1-i])
 		x := uint8(128)
 		for j := 0; j < 8; j++ {
 			if v >= x {
@@ -330,11 +315,11 @@ func bignumRshift(a, b *bn, count int) {
 		}
 	}
 	for i := 0; i < 8; i++ {
-		for j := bnArraySize*8 - 1; j > 0; j-- {
+		for j := BIGINTBYTECOUNT*8 - 1; j > 0; j-- {
 			bits[j] = bits[j-1]
 		}
 		bits[0] = 0
-		for j := 0; j < bnArraySize; j++ {
+		for j := 0; j < BIGINTBYTECOUNT; j++ {
 			if i < count {
 				v := bits[j*8+0] * 128
 				v += bits[j*8+1] * 64
@@ -344,16 +329,16 @@ func bignumRshift(a, b *bn, count int) {
 				v += bits[j*8+5] * 4
 				v += bits[j*8+6] * 2
 				v += bits[j*8+7] * 1
-				b[bnArraySize-1-j] = byte(v)
+				b[BIGINTBYTECOUNT-1-j] = byte(v)
 			}
 		}
 	}
 }
 
-func bignumRshiftByOne(a *bn) {
-	bits := &[bnArraySize * 8]uint8{}
-	for i := 0; i < bnArraySize; i++ {
-		v := uint8(a[bnArraySize-1-i])
+func biguintRshiftByOne(a *biguint) {
+	bits := &[BIGINTBYTECOUNT * 8]uint8{}
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
+		v := uint8(a[BIGINTBYTECOUNT-1-i])
 		x := uint8(128)
 		for j := 0; j < 8; j++ {
 			if v >= x {
@@ -363,11 +348,11 @@ func bignumRshiftByOne(a *bn) {
 			x /= 2
 		}
 	}
-	for i := bnArraySize*8 - 1; i > 0; i-- {
+	for i := BIGINTBYTECOUNT*8 - 1; i > 0; i-- {
 		bits[i] = bits[i-1]
 	}
 	bits[0] = 0
-	for i := 0; i < bnArraySize; i++ {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		v := bits[i*8+0] * 128
 		v += bits[i*8+1] * 64
 		v += bits[i*8+2] * 32
@@ -376,25 +361,25 @@ func bignumRshiftByOne(a *bn) {
 		v += bits[i*8+5] * 4
 		v += bits[i*8+6] * 2
 		v += bits[i*8+7] * 1
-		a[bnArraySize-1-i] = byte(v)
+		a[BIGINTBYTECOUNT-1-i] = byte(v)
 	}
 }
 
-func bignumMod(ia, ib, oc *bn) {
-	tc := &bn{}
-	bignumDiv(ia, ib, oc)
-	bignumMul(oc, ib, tc)
-	bignumSub(ia, tc, oc)
+func biguintMod(ia, ib, oc *biguint) {
+	tc := &biguint{}
+	biguintDiv(ia, ib, oc)
+	biguintMul(oc, ib, tc)
+	biguintSub(ia, tc, oc)
 }
 
-func bignumAnd(a, b, c *bn) {
-	for i := 0; i < bnArraySize; i++ {
+func biguintAnd(a, b, c *biguint) {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		c[i] = andByte(a[i], b[i])
 	}
 }
 
-func bignumOr(a, b, c *bn) {
-	for i := 0; i < bnArraySize; i++ {
+func biguintOr(a, b, c *biguint) {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		v1 := a[i]
 		v2 := b[i]
 		o := uint8(0)
@@ -415,8 +400,8 @@ func bignumOr(a, b, c *bn) {
 	}
 }
 
-func bignumXor(a, b, c *bn) {
-	for i := 0; i < bnArraySize; i++ {
+func biguintXor(a, b, c *biguint) {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		v1 := a[i]
 		v2 := b[i]
 		o := uint8(0)
@@ -437,9 +422,9 @@ func bignumXor(a, b, c *bn) {
 	}
 }
 
-func bignumEquals(a, b *bn) bool {
+func biguintEquals(a, b *biguint) bool {
 	cmp := 0
-	for i := bnArraySize - 1; i >= 0; i-- {
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
 		if cmp == 0 && a[i] > b[i] {
 			cmp++
 		}
@@ -450,9 +435,9 @@ func bignumEquals(a, b *bn) bool {
 	return cmp == 0
 }
 
-func bignumLessThan(a, b *bn) bool {
+func biguintLessThan(a, b *biguint) bool {
 	cmp := 0
-	for i := bnArraySize - 1; i >= 0; i-- {
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
 		if cmp == 0 && a[i] > b[i] {
 			cmp++
 		}
@@ -463,9 +448,9 @@ func bignumLessThan(a, b *bn) bool {
 	return cmp < 0
 }
 
-func bignumLessThanOrEqual(a, b *bn) bool {
+func biguintLessThanOrEqual(a, b *biguint) bool {
 	cmp := 0
-	for i := bnArraySize - 1; i >= 0; i-- {
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
 		if cmp == 0 && a[i] > b[i] {
 			cmp++
 		}
@@ -476,9 +461,9 @@ func bignumLessThanOrEqual(a, b *bn) bool {
 	return cmp <= 0
 }
 
-func bignumGreaterThan(a, b *bn) bool {
+func biguintGreaterThan(a, b *biguint) bool {
 	cmp := 0
-	for i := bnArraySize - 1; i >= 0; i-- {
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
 		if cmp == 0 && a[i] > b[i] {
 			cmp++
 		}
@@ -489,9 +474,9 @@ func bignumGreaterThan(a, b *bn) bool {
 	return cmp > 0
 }
 
-func bignumGreaterThanOrEqual(a, b *bn) bool {
+func biguintGreaterThanOrEqual(a, b *biguint) bool {
 	cmp := 0
-	for i := bnArraySize - 1; i >= 0; i-- {
+	for i := BIGINTBYTECOUNT - 1; i >= 0; i-- {
 		if cmp == 0 && a[i] > b[i] {
 			cmp++
 		}
@@ -502,69 +487,69 @@ func bignumGreaterThanOrEqual(a, b *bn) bool {
 	return cmp >= 0
 }
 
-func bignumPow(a, b, c *bn) {
-	one := &bn{}
+func biguintPow(a, b, c *biguint) {
+	one := &biguint{}
 	one[0] = 1
-	bIsZero := bignumEquals(b, &bn{})
-	t1 := &bn{}
-	t2 := &bn{}
-	bignumAssign(t1, a)
-	bignumAssign(t2, b)
-	bignumSub(t2, one, t2)
+	bIsZero := biguintEquals(b, &biguint{})
+	t1 := &biguint{}
+	t2 := &biguint{}
+	biguintAssign(t1, a)
+	biguintAssign(t2, b)
+	biguintSub(t2, one, t2)
 	if bIsZero == false {
-		for i := 0; i < 8*bnArraySize; i++ {
-			if bignumEquals(t2, &bn{}) {
+		for i := 0; i < 8*BIGINTBYTECOUNT; i++ {
+			if biguintEquals(t2, &biguint{}) {
 				break
 			}
-			bignumMul(t1, a, c)
-			bignumSub(t2, one, t2)
-			bignumAssign(t1, c)
+			biguintMul(t1, a, c)
+			biguintSub(t2, one, t2)
+			biguintAssign(t1, c)
 		}
 	}
-	bignumAssign(c, t1)
-	for i := 0; i < bnArraySize; i++ {
+	biguintAssign(c, t1)
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		t1[i] = 0
 	}
 	t1[0] = 1
-	bignumAssignIfTrue(c, t1, bIsZero)
+	biguintAssignIfTrue(c, t1, bIsZero)
 }
 
-func bignumSqrt(a, b *bn) {
-	one := &bn{}
+func biguintSqrt(a, b *biguint) {
+	one := &biguint{}
 	one[0] = 1
-	low := &bn{}
-	high := &bn{}
-	mid := &bn{}
-	t1 := &bn{}
-	bignumAssign(high, a)
-	bignumRshift(high, mid, 1)
-	bignumAdd(mid, one, mid)
-	for i := 0; i < 8*bnArraySize; i++ {
-		if bignumLessThanOrEqual(high, low) {
+	low := &biguint{}
+	high := &biguint{}
+	mid := &biguint{}
+	t1 := &biguint{}
+	biguintAssign(high, a)
+	biguintRshift(high, mid, 1)
+	biguintAdd(mid, one, mid)
+	for i := 0; i < 8*BIGINTBYTECOUNT; i++ {
+		if biguintLessThanOrEqual(high, low) {
 			break
 		}
-		bignumMul(mid, mid, t1)
-		isGreaterThan := bignumGreaterThan(t1, a)
-		bignumAssign(t1, mid)
-		bignumSub(t1, one, t1)
-		bignumAssignIfTrue(high, t1, isGreaterThan)
-		bignumAssignIfTrue(low, mid, !isGreaterThan)
-		bignumSub(high, low, mid)
-		bignumRshiftByOne(mid)
-		bignumAdd(low, mid, mid)
-		bignumAdd(mid, one, mid)
+		biguintMul(mid, mid, t1)
+		isGreaterThan := biguintGreaterThan(t1, a)
+		biguintAssign(t1, mid)
+		biguintSub(t1, one, t1)
+		biguintAssignIfTrue(high, t1, isGreaterThan)
+		biguintAssignIfTrue(low, mid, !isGreaterThan)
+		biguintSub(high, low, mid)
+		biguintRshiftByOne(mid)
+		biguintAdd(low, mid, mid)
+		biguintAdd(mid, one, mid)
 	}
-	bignumAssign(b, low)
+	biguintAssign(b, low)
 }
 
-func bignumAssign(dst, src *bn) {
-	for i := 0; i < bnArraySize; i++ {
+func biguintAssign(dst, src *biguint) {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		dst[i] = src[i]
 	}
 }
 
-func bignumAssignIfTrue(dst, src *bn, b bool) {
-	for i := 0; i < bnArraySize; i++ {
+func biguintAssignIfTrue(dst, src *biguint, b bool) {
+	for i := 0; i < BIGINTBYTECOUNT; i++ {
 		if b {
 			dst[i] = src[i]
 		}
