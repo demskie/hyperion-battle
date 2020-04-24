@@ -88,5 +88,6 @@ test("mul", () => {
   for (let i = 0; i < pixels.length; i += 4) {
     out.push(pixels[i] + pixels[i + 1] * 256 + pixels[i + 2] * 65536 + pixels[i + 3] * 4294967296);
   }
-  throw new Error(pixels);
+
+  // throw new Error(pixels);
 });

@@ -5,47 +5,47 @@ import "testing"
 func TestGolden(t *testing.T) {
 	testData := getTestData()
 	for _, oracle := range testData {
-		res := &biguint{}
-		n1, n2, n3 := &biguint{}, &biguint{}, &biguint{}
-		biguintFromUint64(n1, oracle.a)
-		biguintFromUint64(n2, oracle.b)
-		biguintFromUint64(n3, oracle.c)
+		res := biguint{}
+		n1, n2, n3 := biguint{}, biguint{}, biguint{}
+		biguintFromUint64(&n1, oracle.a)
+		biguintFromUint64(&n2, oracle.b)
+		biguintFromUint64(&n3, oracle.c)
 		switch oracle.op {
 		case "+":
-			biguintAdd(n1, n2, res)
+			biguintAdd(n1, n2, &res)
 			break
 		case "-":
-			biguintSub(n1, n2, res)
+			biguintSub(n1, n2, &res)
 			break
 		case "*":
-			biguintMul(n1, n2, res)
+			biguintMul(n1, n2, &res)
 			break
 		case "/":
-			biguintDiv(n1, n2, res)
+			biguintDiv(n1, n2, &res)
 			break
 		case "%":
-			biguintMod(n1, n2, res)
+			biguintMod(n1, n2, &res)
 			break
 		case "&":
-			biguintAnd(n1, n2, res)
+			biguintAnd(n1, n2, &res)
 			break
 		case "|":
-			biguintOr(n1, n2, res)
+			biguintOr(n1, n2, &res)
 			break
 		case "^":
-			biguintXor(n1, n2, res)
+			biguintXor(n1, n2, &res)
 			break
 		case "p":
-			biguintPow(n1, n2, res)
+			biguintPow(n1, n2, &res)
 			break
 		case "<":
-			biguintLshift(n1, res, int(oracle.b))
+			biguintLshift(n1, &res, int(oracle.b))
 			break
 		case ">":
-			biguintRshift(n1, res, int(oracle.b))
+			biguintRshift(n1, &res, int(oracle.b))
 			break
 		case "sqrt":
-			biguintSqrt(n1, res)
+			biguintSqrt(n1, &res)
 			break
 		default:
 			panic("unknown operator detected")

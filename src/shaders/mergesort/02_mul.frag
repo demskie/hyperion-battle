@@ -8,86 +8,86 @@ uniform sampler2D Data1;
 uniform sampler2D Data2;
 uniform float Width;
 
-const int arraysize = 16;
+const int BYTE_COUNT = 16;
 
-bool bignumEquals(inout float a[arraysize], inout float b[arraysize]) {
+bool biguintEquals(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT]) {
     float cmp;
-    for (int i = arraysize - 1; i >= 0; i--) {
+    for (int i = BYTE_COUNT - 1; i >= 0; i--) {
         cmp += float(cmp == 0.0) * float(a[i] > b[i]);
         cmp -= float(cmp == 0.0) * float(a[i] < b[i]);
     }
     return cmp == 0.0;
 }
 
-bool bignumEquals(inout float a[arraysize], float f) {
-    float b[arraysize];
+bool biguintEquals(inout float a[BYTE_COUNT], float f) {
+    float b[BYTE_COUNT];
     b[0] = mod(f, 256.0);
     b[1] = floor(f / 256.0);
-    return bignumEquals(a, b);
+    return biguintEquals(a, b);
 }
 
-bool bignumLessThan(inout float a[arraysize], inout float b[arraysize]) {
+bool biguintLessThan(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT]) {
     float cmp;
-    for (int i = arraysize - 1; i >= 0; i--) {
+    for (int i = BYTE_COUNT - 1; i >= 0; i--) {
         cmp += float(cmp == 0.0) * float(a[i] > b[i]);
         cmp -= float(cmp == 0.0) * float(a[i] < b[i]);
     }
     return cmp < 0.0;
 }
 
-bool bignumLessThan(inout float a[arraysize], float f) {
-    float b[arraysize];
+bool biguintLessThan(inout float a[BYTE_COUNT], float f) {
+    float b[BYTE_COUNT];
     b[0] = mod(f, 256.0);
     b[1] = floor(f / 256.0);
-    return bignumLessThan(a, b);
+    return biguintLessThan(a, b);
 }
 
-bool bignumLessThanOrEqual(inout float a[arraysize], inout float b[arraysize]) {
+bool biguintLessThanOrEqual(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT]) {
     float cmp;
-    for (int i = arraysize - 1; i >= 0; i--) {
+    for (int i = BYTE_COUNT - 1; i >= 0; i--) {
         cmp += float(cmp == 0.0) * float(a[i] > b[i]);
         cmp -= float(cmp == 0.0) * float(a[i] < b[i]);
     }
     return cmp <= 0.0;
 }
 
-bool bignumLessThanOrEqual(inout float a[arraysize], float f) {
-    float b[arraysize];
+bool biguintLessThanOrEqual(inout float a[BYTE_COUNT], float f) {
+    float b[BYTE_COUNT];
     b[0] = mod(f, 256.0);
     b[1] = floor(f / 256.0);
-    return bignumLessThanOrEqual(a, b);
+    return biguintLessThanOrEqual(a, b);
 }
 
-bool bignumGreaterThan(inout float a[arraysize], inout float b[arraysize]) {
+bool biguintGreaterThan(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT]) {
     float cmp;
-    for (int i = arraysize - 1; i >= 0; i--) {
+    for (int i = BYTE_COUNT - 1; i >= 0; i--) {
         cmp += float(cmp == 0.0) * float(a[i] > b[i]);
         cmp -= float(cmp == 0.0) * float(a[i] < b[i]);
     }
     return cmp > 0.0;
 }
 
-bool bignumGreaterThan(inout float a[arraysize], float f) {
-    float b[arraysize];
+bool biguintGreaterThan(inout float a[BYTE_COUNT], float f) {
+    float b[BYTE_COUNT];
     b[0] = mod(f, 256.0);
     b[1] = floor(f / 256.0);
-    return bignumGreaterThan(a, b);
+    return biguintGreaterThan(a, b);
 }
 
-bool bignumGreaterThanOrEqual(inout float a[arraysize], inout float b[arraysize]) {
+bool biguintGreaterThanOrEqual(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT]) {
     float cmp;
-    for (int i = arraysize - 1; i >= 0; i--) {
+    for (int i = BYTE_COUNT - 1; i >= 0; i--) {
         cmp += float(cmp == 0.0) * float(a[i] > b[i]);
         cmp -= float(cmp == 0.0) * float(a[i] < b[i]);
     }
     return cmp >= 0.0;
 }
 
-bool bignumGreaterThanOrEqual(inout float a[arraysize], float f) {
-    float b[arraysize];
+bool biguintGreaterThanOrEqual(inout float a[BYTE_COUNT], float f) {
+    float b[BYTE_COUNT];
     b[0] = mod(f, 256.0);
     b[1] = floor(f / 256.0);
-    return bignumGreaterThanOrEqual(a, b);
+    return biguintGreaterThanOrEqual(a, b);
 }
 
 float lshiftByte(float f, float m) { 
@@ -131,38 +131,38 @@ float xorByte(float a, float b) {
     return o;
 }
 
-void bignumAssignIfTrue(inout float [arraysize], inout float [arraysize], bool);
-void bignumAdd(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
-void bignumSub(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
-void bignumMul(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
-void bignumPow(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
-void bignumDiv(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
-void bignumMod(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
-void bignumSqrt(inout float [arraysize], inout float [arraysize]);
-void bignumLshift(inout float [arraysize], inout float [arraysize], float);
-void bignumLshiftByOne(inout float [arraysize]);
-void bignumRshift(inout float [arraysize], inout float [arraysize], float);
-void bignumRshiftByOne(inout float [arraysize]);
-void bignumAnd(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
-void bignumOr(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
-void bignumXor(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
-bool bignumEquals(inout float [arraysize], inout float [arraysize]);
-bool bignumLessThan(inout float [arraysize], inout float [arraysize]);
-bool bignumGreaterThan(inout float [arraysize], inout float [arraysize]);
-bool bignumLessThanOrEqual(inout float [arraysize], inout float [arraysize]);
-bool bignumGreaterThanOrEqual(inout float [arraysize], inout float [arraysize]);
+void biguintAssignIfTrue(inout float [BYTE_COUNT], inout float [BYTE_COUNT], bool);
+void biguintAdd(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+void biguintSub(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+void biguintMul(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+void biguintPow(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+void biguintDiv(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+void biguintMod(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+void biguintSqrt(inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+void biguintLshift(inout float [BYTE_COUNT], inout float [BYTE_COUNT], float);
+void biguintLshiftByOne(inout float [BYTE_COUNT]);
+void biguintRshift(inout float [BYTE_COUNT], inout float [BYTE_COUNT], float);
+void biguintRshiftByOne(inout float [BYTE_COUNT]);
+void biguintAnd(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+void biguintOr(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+void biguintXor(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+bool biguintEquals(inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+bool biguintLessThan(inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+bool biguintGreaterThan(inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+bool biguintLessThanOrEqual(inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
+bool biguintGreaterThanOrEqual(inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
 
 #define BIGNUMASSIGNIFTRUE
-void bignumAssignIfTrue(inout float dst[arraysize], inout float src[arraysize], bool b) {
-    for (int i = 0; i < arraysize; i++) {
+void biguintAssignIfTrue(inout float dst[BYTE_COUNT], inout float src[BYTE_COUNT], bool b) {
+    for (int i = 0; i < BYTE_COUNT; i++) {
         dst[i] = float(b) * src[i] + float(!b) * dst[i];
     }
 }
 
 #define BIGNUMADD
-void bignumAdd(inout float a[arraysize], inout float b[arraysize], inout float c[arraysize]) {
+void biguintAdd(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], inout float c[BYTE_COUNT]) {
     float carry, tmp;
-    for (int i = 0; i < arraysize; i++) {
+    for (int i = 0; i < BYTE_COUNT; i++) {
         tmp = a[i] + b[i] + carry;
         carry = float(tmp > 255.0);
         c[i] = mod(tmp, 256.0);
@@ -170,17 +170,17 @@ void bignumAdd(inout float a[arraysize], inout float b[arraysize], inout float c
 }
 
 #define BIGNUMADDFLOAT
-void bignumAdd(inout float a[arraysize], float f, inout float c[arraysize]) {
-    float b[arraysize];
+void biguintAdd(inout float a[BYTE_COUNT], float f, inout float c[BYTE_COUNT]) {
+    float b[BYTE_COUNT];
     b[0] = mod(f, 256.0);
     b[1] = floor(f / 256.0);
-    bignumAdd(a, b, c);
+    biguintAdd(a, b, c);
 }
 
 #define BIGNUMSUB
-void bignumSub(inout float a[arraysize], inout float b[arraysize], inout float c[arraysize]) {
+void biguintSub(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], inout float c[BYTE_COUNT]) {
     float borrow, tmp;
-    for (int i = 0; i < arraysize; i++) {
+    for (int i = 0; i < BYTE_COUNT; i++) {
         tmp = a[i] - b[i] - borrow;
         borrow = float(tmp < 0.0);
         c[i] = mod(tmp, 256.0); 
@@ -188,26 +188,26 @@ void bignumSub(inout float a[arraysize], inout float b[arraysize], inout float c
 }
 
 #define BIGNUMSUBFLOAT
-void bignumSub(inout float a[arraysize], float f, inout float c[arraysize]) {
-    float b[arraysize];
+void biguintSub(inout float a[BYTE_COUNT], float f, inout float c[BYTE_COUNT]) {
+    float b[BYTE_COUNT];
     b[0] = mod(f, 256.0);
     b[1] = floor(f / 256.0);
-    bignumSub(a, b, c);
+    biguintSub(a, b, c);
 }
 
 #define BIGNUMMUL
-void bignumMul(inout float a[arraysize], inout float b[arraysize], inout float c[arraysize]) {
+void biguintMul(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], inout float c[BYTE_COUNT]) {
     float aStop, bStop;
-    for (int i = arraysize - 1; i > 0; i--) {
+    for (int i = BYTE_COUNT - 1; i > 0; i--) {
         aStop += float(aStop == 0.0) * float(a[i] > 0.0) * float(i);
         bStop += float(bStop == 0.0) * float(b[i] > 0.0) * float(i);
     }
-    float t1[arraysize];
-    for (int i = 0; i < arraysize; i++) t1[i] = a[i];
-    bignumAssignIfTrue(a, b, aStop < bStop);
-    bignumAssignIfTrue(b, t1, aStop < bStop);
+    float t1[BYTE_COUNT];
+    for (int i = 0; i < BYTE_COUNT; i++) t1[i] = a[i];
+    biguintAssignIfTrue(a, b, aStop < bStop);
+    biguintAssignIfTrue(b, t1, aStop < bStop);
     float nonEmptyBytes, powerOfTwoBit;
-    for (int i = 0; i < arraysize; i++) {
+    for (int i = 0; i < BYTE_COUNT; i++) {
         nonEmptyBytes += float(b[i] > 0.0);
         float power = 1.0;
         for (int j = 0; j < 8; j++) {
@@ -218,44 +218,44 @@ void bignumMul(inout float a[arraysize], inout float b[arraysize], inout float c
     }
     if (aStop == 0.0 || bStop == 0.0) {
         float carry;
-        for (int i = 0; i < arraysize; i++) {
+        for (int i = 0; i < BYTE_COUNT; i++) {
             float v = a[i] * b[0] + carry;
             carry = v / 256.0;
             c[i] = mod(v, 256.0);
         }
     } else if (nonEmptyBytes == 1.0 && powerOfTwoBit > 0.0) {
-        bignumLshift(a, c, powerOfTwoBit);
+        biguintLshift(a, c, powerOfTwoBit);
     } else {
         float product, carry;
-        float t2[arraysize*2];
-        for (int i = 0; i < arraysize; i++) {
-            for (int j = 0; j < arraysize; j++) {
+        float t2[BYTE_COUNT*2];
+        for (int i = 0; i < BYTE_COUNT; i++) {
+            for (int j = 0; j < BYTE_COUNT; j++) {
                 product = a[i] * b[j] + t2[i+j];
                 carry = product / 256.0;
                 t2[i+j] = product - carry * 256.0;
                 t2[i+j+1] += carry;
             }
         }
-        for (int i = 0; i < arraysize; i++) c[i] = t2[i];
+        for (int i = 0; i < BYTE_COUNT; i++) c[i] = t2[i];
     }
 }
 
 #define BIGNUMMULFLOAT
-void bignumMul(inout float a[arraysize], float f, inout float c[arraysize]) {
-    float b[arraysize];
+void biguintMul(inout float a[BYTE_COUNT], float f, inout float c[BYTE_COUNT]) {
+    float b[BYTE_COUNT];
     b[0] = mod(f, 256.0);
     b[1] = floor(f / 256.0);
-    bignumMul(a, b, c);
+    biguintMul(a, b, c);
 }
 
 #define BIGNUMDIV
-void bignumDiv(inout float a[arraysize], inout float b[arraysize], inout float c[arraysize]) {
+void biguintDiv(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], inout float c[BYTE_COUNT]) {
     float stop;
-    for (int i = arraysize - 1; i > 0; i--) {
+    for (int i = BYTE_COUNT - 1; i > 0; i--) {
         stop += float(i == 0) * float(b[i] > 0.0);
     }
     float nonEmptyBytes, powerOfTwoBit;
-    for (int i = 0; i < arraysize; i++) {
+    for (int i = 0; i < BYTE_COUNT; i++) {
         nonEmptyBytes += float(b[i] > 0.0);
         float power = 1.0;
         for (int j = 0; j < 8; j++) {
@@ -266,67 +266,67 @@ void bignumDiv(inout float a[arraysize], inout float b[arraysize], inout float c
     }
     if (stop == 0.0) {
         float rem;
-        for (int i = arraysize - 1; i >= 0; i--) {
+        for (int i = BYTE_COUNT - 1; i >= 0; i--) {
             float ent = a[i] + rem * 256.0;
             rem = mod(ent, b[0]);
             c[i] = floor(ent / b[0]);
         }
     } else if (nonEmptyBytes == 1.0 && powerOfTwoBit > 0.0) {
-        bignumRshift(a, c, powerOfTwoBit);
+        biguintRshift(a, c, powerOfTwoBit);
     } else {
-        for (int i = 0; i < arraysize; i++) c[i] = 0.0;
-        float current[arraysize], denom[arraysize], t1[arraysize], t2[arraysize], t3[arraysize];
+        for (int i = 0; i < BYTE_COUNT; i++) c[i] = 0.0;
+        float current[BYTE_COUNT], denom[BYTE_COUNT], t1[BYTE_COUNT], t2[BYTE_COUNT], t3[BYTE_COUNT];
         current[0] = 1.0;
-        for (int i = 0; i < arraysize; i++) denom[i] = b[i];
-        for (int i = 0; i < arraysize; i++) t1[i] = a[i];
+        for (int i = 0; i < BYTE_COUNT; i++) denom[i] = b[i];
+        for (int i = 0; i < BYTE_COUNT; i++) t1[i] = a[i];
         bool hasOverflowed;
-        for (int i = 0; i < 8*arraysize; i++) {
-            if (bignumGreaterThan(denom, a)) break;
-            if (denom[arraysize-1] >= 128.0) {
+        for (int i = 0; i < 8*BYTE_COUNT; i++) {
+            if (biguintGreaterThan(denom, a)) break;
+            if (denom[BYTE_COUNT-1] >= 128.0) {
                 hasOverflowed = true;
                 break;
             }
-            bignumLshiftByOne(current);
-            bignumLshiftByOne(denom);
+            biguintLshiftByOne(current);
+            biguintLshiftByOne(denom);
         }
-        for (int i = 0; i < arraysize; i++) t2[i] = current[i];
-        for (int i = 0; i < arraysize; i++) t3[i] = denom[i];
-        bignumRshiftByOne(current);
-        bignumRshiftByOne(denom);
-        bignumAssignIfTrue(current, t2, hasOverflowed == false);
-        bignumAssignIfTrue(denom, t3, hasOverflowed == false);
-        for (int i = 0; i < 8*arraysize; i++) {
+        for (int i = 0; i < BYTE_COUNT; i++) t2[i] = current[i];
+        for (int i = 0; i < BYTE_COUNT; i++) t3[i] = denom[i];
+        biguintRshiftByOne(current);
+        biguintRshiftByOne(denom);
+        biguintAssignIfTrue(current, t2, hasOverflowed == false);
+        biguintAssignIfTrue(denom, t3, hasOverflowed == false);
+        for (int i = 0; i < 8*BYTE_COUNT; i++) {
             float currentIsZero = 1.0;
-            for (int j = 0; j < arraysize; j++) currentIsZero -= currentIsZero * float(current[j] > 0.0);
+            for (int j = 0; j < BYTE_COUNT; j++) currentIsZero -= currentIsZero * float(current[j] > 0.0);
             if (currentIsZero == 1.0) break;
-            bool shouldModify = bignumGreaterThanOrEqual(t1, denom);
-            for (int j = 0; j < arraysize; j++) t2[i] = t1[i];
-            for (int j = 0; j < arraysize; j++) t3[i] = c[i];
-            bignumSub(t2, denom, t2);
-            bignumOr(t3, current, t3);
-            bignumAssignIfTrue(t1, t2, shouldModify);
-            bignumAssignIfTrue(c, t3, shouldModify);
-            bignumRshiftByOne(current);
-            bignumRshiftByOne(denom);
+            bool shouldModify = biguintGreaterThanOrEqual(t1, denom);
+            for (int j = 0; j < BYTE_COUNT; j++) t2[i] = t1[i];
+            for (int j = 0; j < BYTE_COUNT; j++) t3[i] = c[i];
+            biguintSub(t2, denom, t2);
+            biguintOr(t3, current, t3);
+            biguintAssignIfTrue(t1, t2, shouldModify);
+            biguintAssignIfTrue(c, t3, shouldModify);
+            biguintRshiftByOne(current);
+            biguintRshiftByOne(denom);
         }
     }
 }
 
 #define BIGNUMDIVFLOAT
-void bignumDiv(inout float a[arraysize], float f, inout float c[arraysize]) {
-    float b[arraysize];
+void biguintDiv(inout float a[BYTE_COUNT], float f, inout float c[BYTE_COUNT]) {
+    float b[BYTE_COUNT];
     b[0] = mod(f, 256.0);
     b[1] = floor(f / 256.0);
-    bignumDiv(a, b, c);
+    biguintDiv(a, b, c);
 }
 
 #define BIGNUMLSHIFT
-void bignumLshift(inout float a[arraysize], inout float b[arraysize], float count) {
-    count = clamp(floor(count), 0.0, float(arraysize*8));
+void biguintLshift(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], float count) {
+    count = clamp(floor(count), 0.0, float(BYTE_COUNT*8));
     float byteCount = floor(count / 8.0);
-    for (int i = 0; i < arraysize; i++) b[i] = a[i];
-    for (int i = 0; i < arraysize; i++) {
-        for (int j = arraysize - 1; j > 0; j--) {
+    for (int i = 0; i < BYTE_COUNT; i++) b[i] = a[i];
+    for (int i = 0; i < BYTE_COUNT; i++) {
+        for (int j = BYTE_COUNT - 1; j > 0; j--) {
             b[j] = float(byteCount > 0.0) * b[j-1] 
                  + float(byteCount <= 0.0) * b[j];
         }
@@ -334,9 +334,9 @@ void bignumLshift(inout float a[arraysize], inout float b[arraysize], float coun
         byteCount -= 1.0;
     }
     count = mod(count, 8.0);
-    bool bits[arraysize*8];
-    for (int i = 0; i < arraysize; i++) {
-        float x = 128.0, v = b[arraysize-1-i];
+    bool bits[BYTE_COUNT*8];
+    for (int i = 0; i < BYTE_COUNT; i++) {
+        float x = 128.0, v = b[BYTE_COUNT-1-i];
         for (int j = 0; j < 8; j++) {
             bits[i*8+j] = v >= x;
             v -= x * float(v >= x);
@@ -344,9 +344,9 @@ void bignumLshift(inout float a[arraysize], inout float b[arraysize], float coun
         }
     }
     for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < arraysize*8 - 1; j++) bits[j] = bits[j+1];
-        bits[arraysize*8-1] = false;
-        for (int j = 0; j < arraysize; j++) {
+        for (int j = 0; j < BYTE_COUNT*8 - 1; j++) bits[j] = bits[j+1];
+        bits[BYTE_COUNT*8-1] = false;
+        for (int j = 0; j < BYTE_COUNT; j++) {
             float v = float(bits[j*8+0]) * 128.0
                     + float(bits[j*8+1]) * 64.0
                     + float(bits[j*8+2]) * 32.0
@@ -355,33 +355,33 @@ void bignumLshift(inout float a[arraysize], inout float b[arraysize], float coun
                     + float(bits[j*8+5]) * 4.0
                     + float(bits[j*8+6]) * 2.0
                     + float(bits[j*8+7]) * 1.0;
-            b[arraysize-1-j] = float(float(i) < count) * v
-                             + float(float(i) >= count) * b[arraysize-1-j];
+            b[BYTE_COUNT-1-j] = float(float(i) < count) * v
+                             + float(float(i) >= count) * b[BYTE_COUNT-1-j];
         }
     }
 }
 
 #define BIGNUMLSHIFTFLOAT
-void bignumLshift(inout float a[arraysize], inout float b[arraysize], inout float c[arraysize]) {
+void biguintLshift(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], inout float c[BYTE_COUNT]) {
     float cf = c[0] + c[1] * 256.0;
-    bignumLshift(a, b, cf);
+    biguintLshift(a, b, cf);
 }
 
 #define BIGNUMLSHIFTBYONE
-void bignumLshiftByOne(inout float a[arraysize]) {
-    bool bits[arraysize*8];
-    for (int i = 0; i < arraysize; i++) {
-        float x = 128.0, v = a[arraysize-1-i];
+void biguintLshiftByOne(inout float a[BYTE_COUNT]) {
+    bool bits[BYTE_COUNT*8];
+    for (int i = 0; i < BYTE_COUNT; i++) {
+        float x = 128.0, v = a[BYTE_COUNT-1-i];
         for (int j = 0; j < 8; j++) {
             bits[i*8+j] = v >= x;
             v -= x * float(v >= x);
             x = floor(x / 2.0);
         }
     }
-    for (int i = 0; i < arraysize*8 - 1; i++) bits[i] = bits[i+1];
-    bits[arraysize*8-1] = false;
-    for (int i = 0; i < arraysize; i++) {
-        a[arraysize-1-i] = float(bits[i*8+0]) * 128.0
+    for (int i = 0; i < BYTE_COUNT*8 - 1; i++) bits[i] = bits[i+1];
+    bits[BYTE_COUNT*8-1] = false;
+    for (int i = 0; i < BYTE_COUNT; i++) {
+        a[BYTE_COUNT-1-i] = float(bits[i*8+0]) * 128.0
                          + float(bits[i*8+1]) * 64.0
                          + float(bits[i*8+2]) * 32.0
                          + float(bits[i*8+3]) * 16.0
@@ -393,22 +393,22 @@ void bignumLshiftByOne(inout float a[arraysize]) {
 }
 
 #define BIGNUMRSHIFT
-void bignumRshift(inout float a[arraysize], inout float b[arraysize], float count) {
-    count = clamp(floor(count), 0.0, float(arraysize*8));
+void biguintRshift(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], float count) {
+    count = clamp(floor(count), 0.0, float(BYTE_COUNT*8));
     float byteCount = floor(count / 8.0);
-    for (int i = 0; i < arraysize; i++) b[i] = a[i];
-    for (int i = 0; i < arraysize; i++) {
-        for (int j = 0; j < arraysize-1; j++) {
+    for (int i = 0; i < BYTE_COUNT; i++) b[i] = a[i];
+    for (int i = 0; i < BYTE_COUNT; i++) {
+        for (int j = 0; j < BYTE_COUNT-1; j++) {
             b[j] = float(byteCount > 0.0) * b[j+1] 
                  + float(byteCount <= 0.0) * b[j];
         }
-        b[arraysize-1] = float(byteCount <= 0.0) * b[arraysize-1];
+        b[BYTE_COUNT-1] = float(byteCount <= 0.0) * b[BYTE_COUNT-1];
         byteCount -= 1.0;
     }
     count = mod(count, 8.0);
-    bool bits[arraysize*8];
-    for (int i = 0; i < arraysize; i++) {
-        float x = 128.0, v = b[arraysize-1-i];
+    bool bits[BYTE_COUNT*8];
+    for (int i = 0; i < BYTE_COUNT; i++) {
+        float x = 128.0, v = b[BYTE_COUNT-1-i];
         for (int j = 0; j < 8; j++) {
             bits[i*8+j] = v >= x;
             v -= x * float(v >= x);
@@ -416,9 +416,9 @@ void bignumRshift(inout float a[arraysize], inout float b[arraysize], float coun
         }
     }
     for (int i = 0; i < 8; i++) {
-        for (int j = arraysize*8 - 1; j > 0; j--) bits[j] = bits[j-1];
+        for (int j = BYTE_COUNT*8 - 1; j > 0; j--) bits[j] = bits[j-1];
         bits[0] = false;
-        for (int j = 0; j < arraysize; j++) {
+        for (int j = 0; j < BYTE_COUNT; j++) {
             float v = float(bits[j*8+0]) * 128.0
                     + float(bits[j*8+1]) * 64.0
                     + float(bits[j*8+2]) * 32.0
@@ -427,33 +427,33 @@ void bignumRshift(inout float a[arraysize], inout float b[arraysize], float coun
                     + float(bits[j*8+5]) * 4.0
                     + float(bits[j*8+6]) * 2.0
                     + float(bits[j*8+7]) * 1.0;
-            b[arraysize-1-j] = float(float(i) < count) * v
-                             + float(float(i) >= count) * b[arraysize-1-j];
+            b[BYTE_COUNT-1-j] = float(float(i) < count) * v
+                             + float(float(i) >= count) * b[BYTE_COUNT-1-j];
         }
     }
 }
 
 #define BIGNUMRSHIFTFLOAT
-void bignumRshift(inout float a[arraysize], inout float b[arraysize], inout float c[arraysize]) {
+void biguintRshift(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], inout float c[BYTE_COUNT]) {
     float cf = c[0] + c[1] * 256.0;
-    bignumRshift(a, b, cf);
+    biguintRshift(a, b, cf);
 }
 
 #define BIGNUMRSHIFTBYONE
-void bignumRshiftByOne(inout float a[arraysize]) {
-    bool bits[arraysize*8];
-    for (int i = 0; i < arraysize; i++) {
-        float x = 128.0, v = a[arraysize-1-i];
+void biguintRshiftByOne(inout float a[BYTE_COUNT]) {
+    bool bits[BYTE_COUNT*8];
+    for (int i = 0; i < BYTE_COUNT; i++) {
+        float x = 128.0, v = a[BYTE_COUNT-1-i];
         for (int j = 0; j < 8; j++) {
             bits[i*8+j] = v >= x;
             v -= x * float(v >= x);
             x = floor(x / 2.0);
         }
     }
-    for (int i = arraysize*8 - 1; i > 0; i--) bits[i] = bits[i-1];
+    for (int i = BYTE_COUNT*8 - 1; i > 0; i--) bits[i] = bits[i-1];
     bits[0] = false;
-    for (int i = 0; i < arraysize; i++) {
-        a[arraysize-1-i] = float(bits[i*8+0]) * 128.0
+    for (int i = 0; i < BYTE_COUNT; i++) {
+        a[BYTE_COUNT-1-i] = float(bits[i*8+0]) * 128.0
                          + float(bits[i*8+1]) * 64.0
                          + float(bits[i*8+2]) * 32.0
                          + float(bits[i*8+3]) * 16.0
@@ -466,37 +466,37 @@ void bignumRshiftByOne(inout float a[arraysize]) {
 
 #ifndef BIGNUMDIV
     #define BIGNUMDIV
-    void bignumDiv(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
+    void biguintDiv(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
 #endif
 
 #ifndef BIGNUMMUL
     #define BIGNUMMUL
-    void bignumMul(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
+    void biguintMul(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
 #endif
 
 #ifndef BIGNUMSUB
     #define BIGNUMSUB
-    void bignumSub(inout float [arraysize], inout float [arraysize], inout float [arraysize]);
+    void biguintSub(inout float [BYTE_COUNT], inout float [BYTE_COUNT], inout float [BYTE_COUNT]);
 #endif
 
 #define BIGNUMMOD
-void bignumMod(inout float ia[arraysize], inout float ib[arraysize], inout float oc[arraysize]) {
-	float tc[arraysize];
-	bignumDiv(ia, ib, oc);
-    bignumMul(oc, ib, tc);
-    bignumSub(ia, tc, oc);
+void biguintMod(inout float ia[BYTE_COUNT], inout float ib[BYTE_COUNT], inout float oc[BYTE_COUNT]) {
+	float tc[BYTE_COUNT];
+	biguintDiv(ia, ib, oc);
+    biguintMul(oc, ib, tc);
+    biguintSub(ia, tc, oc);
 }
 
 #define BIGNUMMODFLOAT
-void bignumMod(inout float a[arraysize], float f, inout float c[arraysize]) {
-    float b[arraysize];
+void biguintMod(inout float a[BYTE_COUNT], float f, inout float c[BYTE_COUNT]) {
+    float b[BYTE_COUNT];
     b[0] = mod(f, 256.0);
     b[1] = floor(f / 256.0);
-    bignumMod(a, b, c);
+    biguintMod(a, b, c);
 }
 
-void bignumAnd(inout float a[arraysize], inout float b[arraysize], inout float c[arraysize]) {
-    for (int i = 0; i < arraysize; i++) {
+void biguintAnd(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], inout float c[BYTE_COUNT]) {
+    for (int i = 0; i < BYTE_COUNT; i++) {
         float o = 0.0, x = 128.0;
         float v1 = a[i], v2 = b[i];
         for (int j = 0; j < 8; j++) {
@@ -509,8 +509,8 @@ void bignumAnd(inout float a[arraysize], inout float b[arraysize], inout float c
     }
 }
 
-void bignumOr(inout float a[arraysize], inout float b[arraysize], inout float c[arraysize]) {
-    for (int i = 0; i < arraysize; i++) {
+void biguintOr(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], inout float c[BYTE_COUNT]) {
+    for (int i = 0; i < BYTE_COUNT; i++) {
         float o = 0.0, x = 128.0;
         float v1 = a[i], v2 = b[i];
         for (int j = 0; j < 8; j++) {
@@ -523,8 +523,8 @@ void bignumOr(inout float a[arraysize], inout float b[arraysize], inout float c[
     }
 }
 
-void bignumXor(inout float a[arraysize], inout float b[arraysize], inout float c[arraysize]) {
-    for (int i = 0; i < arraysize; i++) {
+void biguintXor(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], inout float c[BYTE_COUNT]) {
+    for (int i = 0; i < BYTE_COUNT; i++) {
         float o = 0.0, x = 128.0;
         float v1 = a[i], v2 = b[i];
         for (int j = 0; j < 8; j++) {
@@ -537,55 +537,55 @@ void bignumXor(inout float a[arraysize], inout float b[arraysize], inout float c
     }
 }
 
-void bignumPow(inout float a[arraysize], inout float b[arraysize], inout float c[arraysize]) {
-    float t1[arraysize], t2[arraysize], one[arraysize];
-    for (int i = 0; i < arraysize; i++) t1[i] = a[i];
-    for (int i = 0; i < arraysize; i++) t2[i] = b[i];
+void biguintPow(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT], inout float c[BYTE_COUNT]) {
+    float t1[BYTE_COUNT], t2[BYTE_COUNT], one[BYTE_COUNT];
+    for (int i = 0; i < BYTE_COUNT; i++) t1[i] = a[i];
+    for (int i = 0; i < BYTE_COUNT; i++) t2[i] = b[i];
     one[0] = 1.0;
-    bignumSub(t2, one, t2);
+    biguintSub(t2, one, t2);
     float bIsZero = 1.0;
-    for (int i = 0; i < arraysize; i++) bIsZero -= bIsZero * float(b[i] > 0.0);
+    for (int i = 0; i < BYTE_COUNT; i++) bIsZero -= bIsZero * float(b[i] > 0.0);
     if (bIsZero == 0.0) {
-        for (int i = 0; i < 8 * arraysize; i++) {
+        for (int i = 0; i < 8 * BYTE_COUNT; i++) {
             float t2IsZero = 1.0;
-            for (int j = 0; j < arraysize; j++) t2IsZero -= t2IsZero * float(t2[j] > 0.0);
+            for (int j = 0; j < BYTE_COUNT; j++) t2IsZero -= t2IsZero * float(t2[j] > 0.0);
             if (t2IsZero == 1.0) break;
-            bignumMul(t1, a, c);
-            bignumSub(t2, one, t2);
-            for (int j = 0; j < arraysize; j++) t1[j] = c[j];
+            biguintMul(t1, a, c);
+            biguintSub(t2, one, t2);
+            for (int j = 0; j < BYTE_COUNT; j++) t1[j] = c[j];
         }
     }
-    for (int i = 0; i < arraysize; i++) c[i] = t1[i];
-    bignumAssignIfTrue(c, one, bIsZero == 1.0);
+    for (int i = 0; i < BYTE_COUNT; i++) c[i] = t1[i];
+    biguintAssignIfTrue(c, one, bIsZero == 1.0);
 }
 
-void bignumSqrt(inout float a[arraysize], inout float b[arraysize]) {
-    float low[arraysize], high[arraysize], mid[arraysize], t1[arraysize], one[arraysize];
-    for (int i = 0; i < arraysize; i++) high[i] = a[i];
-    bignumRshift(high, mid, 1.0);
+void biguintSqrt(inout float a[BYTE_COUNT], inout float b[BYTE_COUNT]) {
+    float low[BYTE_COUNT], high[BYTE_COUNT], mid[BYTE_COUNT], t1[BYTE_COUNT], one[BYTE_COUNT];
+    for (int i = 0; i < BYTE_COUNT; i++) high[i] = a[i];
+    biguintRshift(high, mid, 1.0);
     one[0] = 1.0;
-    bignumAdd(mid, one, mid);
-    for (int i = 0; i < 8 * arraysize; i++) {
-        if (bignumLessThanOrEqual(high, low)) break;
-        bignumMul(mid, mid, t1);
-        bool isGreaterThan = bignumGreaterThan(t1, a);
-        for (int j = 0; j < arraysize; j++) t1[j] = mid[j];
-        bignumSub(t1, one, t1);
-        bignumAssignIfTrue(high, t1, isGreaterThan);
-		bignumAssignIfTrue(low, mid, !isGreaterThan);
-		bignumSub(high, low, mid);
-        bignumRshiftByOne(mid);
-        bignumAdd(low, mid, mid);
-        bignumAdd(mid, one, mid);
+    biguintAdd(mid, one, mid);
+    for (int i = 0; i < 8 * BYTE_COUNT; i++) {
+        if (biguintLessThanOrEqual(high, low)) break;
+        biguintMul(mid, mid, t1);
+        bool isGreaterThan = biguintGreaterThan(t1, a);
+        for (int j = 0; j < BYTE_COUNT; j++) t1[j] = mid[j];
+        biguintSub(t1, one, t1);
+        biguintAssignIfTrue(high, t1, isGreaterThan);
+		biguintAssignIfTrue(low, mid, !isGreaterThan);
+		biguintSub(high, low, mid);
+        biguintRshiftByOne(mid);
+        biguintAdd(low, mid, mid);
+        biguintAdd(mid, one, mid);
     }
-    for (int i = 0; i < arraysize; i++) b[i] = low[i];
+    for (int i = 0; i < BYTE_COUNT; i++) b[i] = low[i];
 }
 
 void main(void) {
     vec4 data1 = texture2D(Data1, gl_FragCoord.xy / Width);
     vec4 data2 = texture2D(Data2, gl_FragCoord.xy / Width);
 
-    float bn1[arraysize], bn2[arraysize], bn3[arraysize];
+    float bn1[BYTE_COUNT], bn2[BYTE_COUNT], bn3[BYTE_COUNT];
     bn1[0] = data1.r * 255.0;
     bn1[1] = data1.g * 255.0;
     bn1[2] = data1.b * 255.0;
@@ -595,7 +595,7 @@ void main(void) {
     bn2[2] = data2.b * 255.0;
     bn2[3] = data2.a * 255.0;
 
-    bignumMul(bn1, bn2, bn3);
+    biguintMul(bn1, bn2, bn3);
     
     gl_FragColor = vec4(bn3[0], bn3[1], bn3[2], bn3[3]) / 255.0;
 }

@@ -3,24 +3,24 @@ package bignum
 import "testing"
 
 func TestFactorial(t *testing.T) {
-	n := &biguint{}
-	res := &biguint{}
-	one := &biguint{}
+	n := biguint{}
+	res := biguint{}
+	one := biguint{}
 	one[0] = 1
 
-	biguintFromUint64(n, 100)
+	biguintFromUint64(&n, 100)
 
-	t0 := &biguint{}
-	biguintAssign(t0, n)
+	t0 := biguint{}
+	biguintAssign(&t0, n)
 
-	biguintSub(n, one, n)
+	biguintSub(n, one, &n)
 
-	for !biguintEquals(n, &biguint{}) {
-		biguintMul(t0, n, res)
-		biguintSub(n, one, n)
-		biguintAssign(t0, res)
+	for !biguintEquals(n, biguint{}) {
+		biguintMul(t0, n, &res)
+		biguintSub(n, one, &n)
+		biguintAssign(&t0, res)
 	}
-	biguintAssign(res, t0)
+	biguintAssign(&res, t0)
 
 	if biguintToString(res) != expectedFactorial {
 		t.Error(biguintToString(res))
